@@ -247,7 +247,7 @@ def blastp_rev(query_dict, db, id_of_interest):
 		# write seq to txt file
 		query = write_seq(query_dict, seq_id)
 		
-		# run blast p with xt file as query against protein of interesst species protein dataset
+		# run blastp with result from first blastp as query against protein of interesst species protein dataset
 		subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		
 		with open(blast_file_name, "r") as blastp_rslt:
@@ -373,6 +373,7 @@ def blastx_rev(query_dict, db, id_of_interest):
 	# dict of the num of hits to check for posssible genome dup
 	num_hits_dict = {}
 	
+	# run blastx for each result from tblastn as query against species protein dataset
 	for seq_id in query_dict.keys():
 	
 		query = write_seq(query_dict, seq_id)
@@ -411,10 +412,16 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 				added_spec[value[0]].append(key)
 
 		for spec in all_specs_list:
-			if len(special_case_list) > 0 and any(spec == info[0] for info in special_case_list) and spec not in added_spec.keys():
-				added_spec[spec] = 0
-			elif spec not in added_spec.keys():
-				added_spec[spec] = []
+			if blast_type == "blastp":
+				if spec not in added_spec.keys() and spec not in special_case_list:
+					added_spec[spec] = 0
+				elif spec not in added_spec.keys():
+					added_spec[spec] = []
+			elif blast_type == "tblastn":
+				if len(special_case_list) > 0 and any(spec == info[0] for info in special_case_list) and spec not in added_spec.keys():
+					added_spec[spec] = 0
+				elif spec not in added_spec.keys():
+					added_spec[spec] = []
 
 		for key, value in added_spec.items():
 			species = key
@@ -447,13 +454,6 @@ def main(argv):
 	
 	# get protein and nucleotide fasta files
 	nucl_fasta_file, prot_fasta_file, all_specs, prot_specs = get_fasta_files(taxID_list)
-
-	# prot_fasta_file = "prot.faa"
-	# subj_db = "sacc_cere"
-	# qseq_id = "NP_012875.2"
-	# nucl_fasta_file = "nucl.fna"
-	# nucl_db = "nucl"
-	# prot_db = "prot"
 	
 	blastp_hit_dict = {}
 	tblastn_hit_dict = {}
@@ -485,35 +485,8 @@ def main(argv):
 			# write updated blast results to txt file
 			write_dict("blastp2", blastp_hit_dict)
 					
-			with open("blastp_SUMMARY.txt", "w") as file:
-				column_widths = [50, 30, 100]
-				
-				file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Hit ID(s)", column_widths[2]))
-				
-				added_spec = {}
-				
-				for key, value in blastp_hit_dict.items():
-					if value[0] not in added_spec.keys():
-						added_spec[value[0]] = [key]
-					else:
-						added_spec[value[0]].append(key)
-						
-				for spec in all_specs:
-					if spec not in added_spec.keys() and spec not in prot_specs:
-						added_spec[spec] = 0
-					elif spec not in added_spec.keys():
-						added_spec[spec] = []
-				
-				for key, value in added_spec.items():
-					species = key
-					count = "no protein dataset"
-					hit_ids = "N/A"
-					if value != 0:
-						count = str(len(value))
-						if len(value) != 0:
-							hit_ids = ', '.join(value)
-					
-					file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
+			# write summary txt file
+			write_summary("blastp", blastp_hit_dict, prot_specs, all_specs)
 					
 			# check if there is a nucleotide fasta file
 			if nucl_fasta_file is not None:
@@ -548,35 +521,8 @@ def main(argv):
 			# write blast results to txt file
 			write_dict("blastx", tblastn_hit_dict)
 					
-			with open("tblastn_SUMMARY.txt", "w") as file:
-				column_widths = [50, 30, 100]
-				
-				file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Hit ID(s)", column_widths[2]))
-    
-				added_spec = {}
-				
-				for key, value in tblastn_hit_dict.items():
-					if value[0] not in added_spec.keys():
-						added_spec[value[0]] = [key]
-					else:
-						added_spec[value[0]].append(key)
-						
-				for spec in all_specs:
-					if blastp_hit_dict is not None and any(spec == info[0] for info in blastp_hit_dict.values()) and spec not in added_spec.keys():
-						added_spec[spec] = 0
-					elif spec not in added_spec.keys():
-						added_spec[spec] = []
-				
-				for key, value in added_spec.items():
-					species = key
-					count = "blastp"
-					hit_ids = "N/A"
-					if value != 0:
-						count = str(len(value))
-						if len(value) != 0:
-							hit_ids = ', '.join(value)
-
-					file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
+			# write summary txt file
+			write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)
 
 
 
