@@ -6,6 +6,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
+
 # get query id based on the provded database
 def get_qseq_id(prot_seq, db):
 	
@@ -17,6 +18,7 @@ def get_qseq_id(prot_seq, db):
 		qseq_id = blastp_rslt.readline().split("\t")[1]
 		
 	return qseq_id	
+
 
 # returns filea with all protein seqs & nucleotide seqs in fasta format, return None if no data exists
 def get_fasta_files(taxID_list):
@@ -33,6 +35,9 @@ def get_fasta_files(taxID_list):
 	
 	# store all species names
 	all_specs = []
+	
+	# species w/ protein dataset
+	prot_specs = []
 
 	# download genome and proteome and save fasta files
 	# for every tax ID 
@@ -80,10 +85,12 @@ def get_fasta_files(taxID_list):
 				
 				if any(name.lower() == special_word.lower() for special_word in special_case3 for name in spec_name):
 					spec_name = ' '.join(spec_name[2:6])
-				elif len(spec_name) > 2 and any (spec_name[2].lower() == special_word.lower() for special_word in special_case2):
-					spec_name = ' '.join(spec_name[:4])
+					
 				elif any (spec_name[1].lower() == special_word.lower() for special_word in special_case1):
-					spec_name = ' '.join(spec_name[:3])
+					if len(spec_name) > 2 and any (spec_name[2].lower() == special_word.lower() for special_word in special_case2):
+						spec_name = ' '.join(spec_name[:4])
+					else:
+						spec_name = ' '.join(spec_name[:3])
 				else:
 					spec_name = ' '.join(spec_name[:2])
 
@@ -99,6 +106,9 @@ def get_fasta_files(taxID_list):
 				nucl_file_paths.append(nucl_file)
 			if os.path.exists(prot_file):
 				prot_file_paths.append(prot_file)
+				for name in all_specs:
+					if name in acs_asm_tuple[2]:
+						prot_specs.append(name)
 				
 	if len(nucl_file_paths) > 0:
 		
@@ -119,25 +129,12 @@ def get_fasta_files(taxID_list):
 		# assign file name
 		prot_fasta_file = "prot.faa"
 
-	# FOR FUTURE USAGE IF DUPE ERROR OCCURS
-	# remove posssible duplicates in protein fasta file
-	# https://stackoverflow.com/questions/66462611/remove-duplicated-sequences-in-fasta-with-python
-	# seen = set()
-	# records = []
-	# for record in SeqIO.parse("prot_db.faa", "fasta"):  
-	# 	if record.seq not in seen:
-	# 		seen.add(record.seq)
-	# 		records.append(record)
-	# subprocess.run("rm prot_db.faa".split())
-	# SeqIO.write(records, "prot_db.faa", "fasta")
-	
-
 	# delete unecessary files and folders
 	# for taxID in taxID_list:
 	# 	subprocess.run("rm -r {0}".format(taxID).split())
 
 	# return file names for nucl and prot fasta files
-	return nucl_fasta_file, prot_fasta_file, all_specs
+	return nucl_fasta_file, prot_fasta_file, all_specs, prot_specs
 
 
 # use fasta file to make blast database
@@ -147,6 +144,7 @@ def get_dbs(fasta_file, seq_type):
 	subprocess.run("makeblastdb -in {0} -out {1} -dbtype {2} -parse_seqids".format(fasta_file, file_name, seq_type).split())
 	
 	return file_name
+
 
 # write result of tblastn into a file for blastx
 def write_seq(blast_dict, key):
@@ -162,6 +160,7 @@ def write_seq(blast_dict, key):
 	# return file name
 	return file_name
 
+
 # remove any seq that were not validated in blastp_rev
 def update_blast_dict(blast_hit_dict, valid_seq_list):
 	
@@ -172,6 +171,7 @@ def update_blast_dict(blast_hit_dict, valid_seq_list):
 	for seq_id in to_rm:
 		del blast_hit_dict[seq_id]
 
+		
 # blastp
 def blastp(query, db, evalue):
 	blast_file_name = "blastp_results.blasted"
@@ -216,10 +216,11 @@ def blastp(query, db, evalue):
 			
 			if any(name.lower() == special_word.lower() for special_word in special_case3 for name in full_name_list):
 				spec_name = ' '.join(full_name_list[2:6])
-			elif len(full_name_list) > 2 and any (full_name_list[2].lower() == special_word.lower() for special_word in special_case2):
-				spec_name = ' '.join(full_name_list[:4])
 			elif any (full_name_list[1].lower() == special_word.lower() for special_word in special_case1):
-				spec_name = ' '.join(full_name_list[:3])
+				if len(full_name_list) > 2 and any (full_name_list[2].lower() == special_word.lower() for special_word in special_case2):
+					spec_name = ' '.join(full_name_list[:4])
+				else:
+					spec_name = ' '.join(full_name_list[:3])
 			else:
 				spec_name = ' '.join(full_name_list[:2])
 			
@@ -231,6 +232,7 @@ def blastp(query, db, evalue):
 												
 	# return dict results and file name 
 	return blastp_hits, blast_file_name
+
 
 # blastp, reverse blast
 def blastp_rev(query_dict, db, id_of_interest):	
@@ -343,10 +345,11 @@ def tblastn(query, db, evalue):
 
 			if any(name.lower() == special_word.lower() for special_word in special_case3 for name in full_name_list):
 				spec_name = ' '.join(full_name_list[3:7])
-			elif any(full_name_list[3].lower() == special_word.lower() for special_word in special_case2):
-				spec_name = ' '.join(full_name_list[1:5])
 			elif any(full_name_list[2].lower() == special_word.lower() for special_word in special_case1):
-				spec_name = ' '.join(full_name_list[1:4])
+				if any(full_name_list[3].lower() == special_word.lower() for special_word in special_case2):
+					spec_name = ' '.join(full_name_list[1:5])
+				else:
+					spec_name = ' '.join(full_name_list[1:4])
 			else:
 				spec_name = ' '.join(full_name_list[1:3])
 			
@@ -384,6 +387,46 @@ def blastx_rev(query_dict, db, id_of_interest):
 				blastx_hits.append(qseq_id)
 				
 	return blastx_hits
+
+# write blast results and and their info to txt file
+def write_dict(blast_type, blast_dict):
+	with open(blast_type + "_RESULT_DATA.txt", "w") as file:
+		for key, value in blast_dict.items():
+			file.write(f"{key}: {value}\n")
+			
+			
+# write summary for blastp and/or tblastn
+def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
+	with open(blast_type + "_SUMMARY.txt", "w") as file:
+		column_widths = [50, 30, 100]
+
+		file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Hit ID(s)", column_widths[2]))
+
+		added_spec = {}
+
+		for key, value in blast_dict.items():
+			if value[0] not in added_spec.keys():
+				added_spec[value[0]] = [key]
+			else:
+				added_spec[value[0]].append(key)
+
+		for spec in all_specs_list:
+			if len(special_case_list) > 0 and any(spec == info[0] for info in special_case_list) and spec not in added_spec.keys():
+				added_spec[spec] = 0
+			elif spec not in added_spec.keys():
+				added_spec[spec] = []
+
+		for key, value in added_spec.items():
+			species = key
+			count = "blastp"
+			hit_ids = "N/A"
+			if value != 0:
+				count = str(len(value))
+				if len(value) != 0:
+					hit_ids = ', '.join(value)
+
+			file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
+	
 						
 
 def main(argv):
@@ -391,7 +434,7 @@ def main(argv):
 	saccer_aa = "sacc_cere.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
-	taxIDS = ["147537"]
+	taxIDS = ["113604"]
 	
 	# make amino acid database for blastx subject
 	subj_db = get_dbs(saccer_aa, "prot")
@@ -403,14 +446,17 @@ def main(argv):
 	taxID_list = taxIDS
 	
 	# get protein and nucleotide fasta files
-	nucl_fasta_file, prot_fasta_file, all_specs = get_fasta_files(taxID_list)
+	nucl_fasta_file, prot_fasta_file, all_specs, prot_specs = get_fasta_files(taxID_list)
 
 	# prot_fasta_file = "prot.faa"
 	# subj_db = "sacc_cere"
 	# qseq_id = "NP_012875.2"
-	# nucl_fasta_file = "nucl_2.fna"
+	# nucl_fasta_file = "nucl.fna"
 	# nucl_db = "nucl"
 	# prot_db = "prot"
+	
+	blastp_hit_dict = {}
+	tblastn_hit_dict = {}
 	
 	# check if there is a protein fasta file
 	if prot_fasta_file is not None:
@@ -418,12 +464,11 @@ def main(argv):
 		# get protein blast database
 		prot_db = get_dbs(prot_fasta_file, "prot")
 	
-		#perform blastp of the query sequence against protein database, get dict of seq id and its info
+		# perform blastp of the query sequence against protein database, get dict of seq id and its info
 		blastp_hit_dict, blastp_rslt_file = blastp(cse4_prot, prot_db, blastp_evalue)
 		
-		with open("blastp_hit_dict1.txt", "w") as file:
-	 		for key, value in blastp_hit_dict.items():
-	 			file.write(f"{key}: {value}\n")
+		# write blast results to txt file
+		write_dict("blastp1", blastp_hit_dict)
 		
 		# reverse blasto tp confirm results from 
 		if len(blastp_hit_dict) > 0:
@@ -436,13 +481,12 @@ def main(argv):
 			# if len of valid seqs != len of dict, then dict must be updated
 			elif len(blastp_rev_list) != len(blastp_hit_dict):
 				update_blast_dict(blastp_hit_dict, blastp_rev_list)
-
-			with open("blastp_hit_dict2.txt", "w") as file:
-				for key, value in blastp_hit_dict.items():
-					file.write(f"{key}: {value}\n")
+			
+			# write updated blast results to txt file
+			write_dict("blastp2", blastp_hit_dict)
 					
 			with open("blastp_SUMMARY.txt", "w") as file:
-				column_widths = [50, 20, 100]
+				column_widths = [50, 30, 100]
 				
 				file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Hit ID(s)", column_widths[2]))
 				
@@ -455,13 +499,19 @@ def main(argv):
 						added_spec[value[0]].append(key)
 						
 				for spec in all_specs:
-					if spec not in added_spec.keys():
+					if spec not in added_spec.keys() and spec not in prot_specs:
+						added_spec[spec] = 0
+					elif spec not in added_spec.keys():
 						added_spec[spec] = []
 				
 				for key, value in added_spec.items():
 					species = key
-					count = str(len(value))
-					hit_ids = ', '.join(value)
+					count = "no protein dataset"
+					hit_ids = "N/A"
+					if value != 0:
+						count = str(len(value))
+						if len(value) != 0:
+							hit_ids = ', '.join(value)
 					
 					file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
 					
@@ -480,9 +530,8 @@ def main(argv):
 		# perfrom tblasn of query sequence against nucleotide database, get dict of seq id and its info
 		tblastn_hit_dict, tblastn_rslt_file = tblastn(cse4_prot, nucl_db, tblastn_evalue)
 		
-		with open("tblastn_hit_dict1.txt", "w") as file:
-			for key, value in tblastn_hit_dict.items():
-				file.write(f"{key}: {value}\n")
+		# write blast results to txt file
+		write_dict("tblastn", tblastn_hit_dict)
 		
 		# perform blastx on each tblastn result, keep valid results
 		if len(tblastn_hit_dict) > 0:
@@ -495,13 +544,12 @@ def main(argv):
 			# if len of valid seqs != len of dict, then dict must be updated
 			elif len(blastx_rev_list) != len(tblastn_hit_dict):
 				update_blast_dict(tblastn_hit_dict, blastx_rev_list)
-
-			with open("tblastn_hit_dict2.txt", "w") as file:
-				for key, value in tblastn_hit_dict.items():
-					file.write(f"{key}: {value}\n")
+			
+			# write blast results to txt file
+			write_dict("blastx", tblastn_hit_dict)
 					
 			with open("tblastn_SUMMARY.txt", "w") as file:
-				column_widths = [50, 20, 100]
+				column_widths = [50, 30, 100]
 				
 				file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Hit ID(s)", column_widths[2]))
     
@@ -511,24 +559,25 @@ def main(argv):
 					if value[0] not in added_spec.keys():
 						added_spec[value[0]] = [key]
 					else:
-						added_spec[value[0]].append(key)	
+						added_spec[value[0]].append(key)
+						
 				for spec in all_specs:
-					if any(spec == info[0] for info in blastp_hit_dict.values()) and spec not in added_spec.keys():
-						added_spec[spec] = "N/A"
+					if blastp_hit_dict is not None and any(spec == info[0] for info in blastp_hit_dict.values()) and spec not in added_spec.keys():
+						added_spec[spec] = 0
 					elif spec not in added_spec.keys():
 						added_spec[spec] = []
 				
 				for key, value in added_spec.items():
 					species = key
-					count = "N/A"
-					hit_ids = ''
-					if value != "N/A":
+					count = "blastp"
+					hit_ids = "N/A"
+					if value != 0:
 						count = str(len(value))
-						hit_ids = ', '.join(value)
+						if len(value) != 0:
+							hit_ids = ', '.join(value)
 
 					file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
 
-		
 
 
 if __name__ == "__main__":
