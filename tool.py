@@ -444,7 +444,7 @@ def main(argv):
 			with open("blastp_SUMMARY.txt", "w") as file:
 				column_widths = [50, 20, 100]
 				
-				file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hits", column_widths[1], "Hit ID(s)", column_widths[2]))
+				file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Hit ID(s)", column_widths[2]))
 				
 				added_spec = {}
 				
@@ -503,7 +503,7 @@ def main(argv):
 			with open("tblastn_SUMMARY.txt", "w") as file:
 				column_widths = [50, 20, 100]
 				
-				file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hits", column_widths[1], "Hit ID(s)", column_widths[2]))
+				file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Hit ID(s)", column_widths[2]))
     
 				added_spec = {}
 				
