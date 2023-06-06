@@ -425,8 +425,13 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 
 		for key, value in added_spec.items():
 			species = key
-			count = "blastp"
+			count = None
+			if blast_type == "blastp":
+				count = "no protein dataset"
+			elif blast_type == "tblastn":
+				count = "blastp"
 			hit_ids = "N/A"
+			
 			if value != 0:
 				count = str(len(value))
 				if len(value) != 0:
@@ -437,11 +442,11 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 						
 
 def main(argv):
-	cse4_prot = "cse4_prot.fasta"
-	saccer_aa = "sacc_cere.faa"
+	cse4_prot = "ndc10.fasta"
+	saccer_aa = "scereviseae.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
-	taxIDS = ["113604"]
+	taxIDS = ["147537"]
 	
 	# make amino acid database for blastx subject
 	subj_db = get_dbs(saccer_aa, "prot")
