@@ -184,51 +184,53 @@ def blastp(query, db, evalue):
 	
 	# fill out information into the dictionary
 	# open blastp result file
-	with open(blast_file_name, "r") as blastp_rslt:
-		for rslt_line in blastp_rslt:
-			col = rslt_line.strip().split("\t")
-			# get protein id
-			seq_id = col[1]
-			# get start of alignment in protein subject
-			sstart = col[8]
-			# get end of alignment in protein subject
-			send = col[9]
-			# get e-value
-			evalue = col[10]
-			
-			# run blastdbcmd to access database to get subsequence and species name
-			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3}".format(db, seq_id, sstart, send).split(), capture_output=True, text=True).stdout.split("\n")
-			
-			# get species name
-			spec_name = None
-			full_name_list = None
+	# make sure file is not empty
+	if os.stat(blast_file_name).st_size != 0:
+		with open(blast_file_name, "r") as blastp_rslt:
+			for rslt_line in blastp_rslt:
+				col = rslt_line.strip().split("\t")
+				# get protein id
+				seq_id = col[1]
+				# get start of alignment in protein subject
+				sstart = col[8]
+				# get end of alignment in protein subject
+				send = col[9]
+				# get e-value
+				evalue = col[10]
 
-			if '[[' in db_info[0]:
-				full_name_list = re.search(r'\[\[(.+?)\]\s(.+?)\]', db_info[0])
-				full_name_list = full_name_list.group(1)+ " "+full_name_list.group(2)
-				full_name_list = full_name_list.split()
-			else:
-				full_name_list = re.search(r'\[(.*?)\]', db_info[0]).group(1).split()
-			
-			special_case1 = ["sp.", "aff."] 
-			special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS"]
-			special_case3 = ["MAG"]
-			
-			if any(name.lower() == special_word.lower() for special_word in special_case3 for name in full_name_list):
-				spec_name = ' '.join(full_name_list[2:6])
-			elif any (full_name_list[1].lower() == special_word.lower() for special_word in special_case1):
-				if len(full_name_list) > 2 and any (full_name_list[2].lower() == special_word.lower() for special_word in special_case2):
-					spec_name = ' '.join(full_name_list[:4])
+				# run blastdbcmd to access database to get subsequence and species name
+				db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3}".format(db, seq_id, sstart, send).split(), capture_output=True, text=True).stdout.split("\n")
+
+				# get species name
+				spec_name = None
+				full_name_list = None
+
+				if '[[' in db_info[0]:
+					full_name_list = re.search(r'\[\[(.+?)\]\s(.+?)\]', db_info[0])
+					full_name_list = full_name_list.group(1)+ " "+full_name_list.group(2)
+					full_name_list = full_name_list.split()
 				else:
-					spec_name = ' '.join(full_name_list[:3])
-			else:
-				spec_name = ' '.join(full_name_list[:2])
-			
-			# get alignment subsequence
-			align_seq = ''.join(db_info[1:-1])
-			
-			# fill out info for dictionary 
-			blastp_hits[seq_id] = [spec_name, sstart, send, evalue, align_seq]
+					full_name_list = re.search(r'\[(.*?)\]', db_info[0]).group(1).split()
+
+				special_case1 = ["sp.", "aff."] 
+				special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS"]
+				special_case3 = ["MAG"]
+
+				if any(name.lower() == special_word.lower() for special_word in special_case3 for name in full_name_list):
+					spec_name = ' '.join(full_name_list[2:6])
+				elif any (full_name_list[1].lower() == special_word.lower() for special_word in special_case1):
+					if len(full_name_list) > 2 and any (full_name_list[2].lower() == special_word.lower() for special_word in special_case2):
+						spec_name = ' '.join(full_name_list[:4])
+					else:
+						spec_name = ' '.join(full_name_list[:3])
+				else:
+					spec_name = ' '.join(full_name_list[:2])
+
+				# get alignment subsequence
+				align_seq = ''.join(db_info[1:-1])
+
+				# fill out info for dictionary 
+				blastp_hits[seq_id] = [spec_name, sstart, send, evalue, align_seq]
 												
 	# return dict results and file name 
 	return blastp_hits, blast_file_name
@@ -250,14 +252,16 @@ def blastp_rev(query_dict, db, id_of_interest):
 		# run blastp with result from first blastp as query against protein of interesst species protein dataset
 		subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		
-		with open(blast_file_name, "r") as blastp_rslt:
-			rslt = blastp_rslt.readline().strip('\n').split("\t")
-			qseq_id = rslt[0]
-			sseq_id = rslt[1]
-			
-			# check if the first result is id_of_interest
-			if sseq_id == id_of_interest:
-				blastp_hits.append(qseq_id)
+		# make sure file is not empty
+		if os.stat(blast_file_name).st_size != 0:
+			with open(blast_file_name, "r") as blastp_rslt:
+				rslt = blastp_rslt.readline().strip('\n').split("\t")
+				qseq_id = rslt[0]
+				sseq_id = rslt[1]
+
+				# check if the first result is id_of_interest
+				if sseq_id == id_of_interest:
+					blastp_hits.append(qseq_id)
 				
 	return blastp_hits
 
@@ -300,64 +304,66 @@ def tblastn(query, db, evalue):
 	
 	# fill out information into the dictionary
 	# open tblastn result file
-	with open(blast_file_name, "r") as tblastn_rslt:
-		for rslt_line in tblastn_rslt:
-			col = rslt_line.strip().split("\t")
-			# get nucleotide id
-			seq_id = col[1]
-			# get start of alignment in nucl subject
-			sstart = col[8]
-			# get end of alignment in nucl subject
-			send = col[9]
-			# get e-value
-			evalue = col[10]
-			# get aa seq
-			sseq = col[12]
-			
-			# initialize string to capture info
-			db_info = None
-			
-			# if plus strand
-			if int(sstart) < int(send):
-				# run blastdbcmd to access database to get subsequence and species name
-				db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3} -strand plus".format(db, seq_id, sstart, send).split(), capture_output=True, text=True).stdout.split("\n")
-			
-			# if mi nus strand
-			else:
-				# run blastdbcmd to access database to get subsequence and species name
-				db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3} -strand minus".format(db, seq_id, send, sstart).split(), capture_output=True, text=True).stdout.split("\n")
-			
-			# get species name
-			spec_name = None
-			full_name_list = None
-			full_name = db_info[0][1:]
-			
-			if "[" in full_name:
-				full_name = full_name.replace('[', '').replace(']', '')
-			if "'" in full_name:
-				full_name = full_name.replace("'", '')
-			
-			special_case1 = ["sp.", "aff."] 
-			special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS"]
-			special_case3 = ["MAG"]
-			
-			full_name_list = full_name.split()
+	# make sure file is not empty
+	if os.stat(blast_file_name).st_size != 0:
+		with open(blast_file_name, "r") as tblastn_rslt:
+			for rslt_line in tblastn_rslt:
+				col = rslt_line.strip().split("\t")
+				# get nucleotide id
+				seq_id = col[1]
+				# get start of alignment in nucl subject
+				sstart = col[8]
+				# get end of alignment in nucl subject
+				send = col[9]
+				# get e-value
+				evalue = col[10]
+				# get aa seq
+				sseq = col[12]
 
-			if any(name.lower() == special_word.lower() for special_word in special_case3 for name in full_name_list):
-				spec_name = ' '.join(full_name_list[3:7])
-			elif any(full_name_list[2].lower() == special_word.lower() for special_word in special_case1):
-				if any(full_name_list[3].lower() == special_word.lower() for special_word in special_case2):
-					spec_name = ' '.join(full_name_list[1:5])
+				# initialize string to capture info
+				db_info = None
+
+				# if plus strand
+				if int(sstart) < int(send):
+					# run blastdbcmd to access database to get subsequence and species name
+					db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3} -strand plus".format(db, seq_id, sstart, send).split(), capture_output=True, text=True).stdout.split("\n")
+
+				# if mi nus strand
 				else:
-					spec_name = ' '.join(full_name_list[1:4])
-			else:
-				spec_name = ' '.join(full_name_list[1:3])
-			
-			# get alignment subsequence
-			align_seq = ''.join(db_info[1:-1])
+					# run blastdbcmd to access database to get subsequence and species name
+					db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3} -strand minus".format(db, seq_id, send, sstart).split(), capture_output=True, text=True).stdout.split("\n")
 
-			# fill out info for dictionary 
-			tblastn_hits[seq_id.split("|")[1]] = [spec_name, sstart, send, evalue, align_seq, sseq]
+				# get species name
+				spec_name = None
+				full_name_list = None
+				full_name = db_info[0][1:]
+
+				if "[" in full_name:
+					full_name = full_name.replace('[', '').replace(']', '')
+				if "'" in full_name:
+					full_name = full_name.replace("'", '')
+
+				special_case1 = ["sp.", "aff."] 
+				special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS"]
+				special_case3 = ["MAG"]
+
+				full_name_list = full_name.split()
+
+				if any(name.lower() == special_word.lower() for special_word in special_case3 for name in full_name_list):
+					spec_name = ' '.join(full_name_list[3:7])
+				elif any(full_name_list[2].lower() == special_word.lower() for special_word in special_case1):
+					if any(full_name_list[3].lower() == special_word.lower() for special_word in special_case2):
+						spec_name = ' '.join(full_name_list[1:5])
+					else:
+						spec_name = ' '.join(full_name_list[1:4])
+				else:
+					spec_name = ' '.join(full_name_list[1:3])
+
+				# get alignment subsequence
+				align_seq = ''.join(db_info[1:-1])
+
+				# fill out info for dictionary 
+				tblastn_hits[seq_id.split("|")[1]] = [spec_name, sstart, send, evalue, align_seq, sseq]
 						
 	# return results dict and file name
 	return tblastn_hits, blast_file_name
@@ -380,12 +386,14 @@ def blastx_rev(query_dict, db, id_of_interest):
 		
 		subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		
-		with open(blast_file_name, "r") as blastx_rslt:
-			rslt = blastx_rslt.readline().strip('\n').split("\t")
-			qseq_id = rslt[0]
-			sseq_id = rslt[1]
-			if sseq_id == id_of_interest:
-				blastx_hits.append(qseq_id)
+		# make sure file is not empty
+		if os.stat(blast_file_name).st_size != 0:
+			with open(blast_file_name, "r") as blastx_rslt:
+				rslt = blastx_rslt.readline().strip('\n').split("\t")
+				qseq_id = rslt[0]
+				sseq_id = rslt[1]
+				if sseq_id == id_of_interest:
+					blastx_hits.append(qseq_id)
 				
 	return blastx_hits
 
@@ -439,26 +447,59 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 
 			file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
 	
-						
+# write list to txt file
+def write_list(filename, l):
+	with open(filename + ".txt", "w") as file:
+		for line in l:
+			file.write(line + "\n")
+
+# read txt file and return a list of lines from file
+def read_list(filename):
+	l = []
+	with open (filename, "r") as file:
+		for line in file:
+			l.append(line.strip("\n"))
+	return l
 
 def main(argv):
-	cse4_prot = "ndc10.fasta"
-	saccer_aa = "scereviseae.faa"
+	cse4_prot = "ndc10_lelongisporus.fasta"
+	saccer_aa = "lelongisporus.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
 	taxIDS = ["147537"]
+	download = "no"
+	
+	nucl_fasta_file = None 
+	prot_fasta_file = None 
+	all_specs = None
+	prot_specs = None
 	
 	# make amino acid database for blastx subject
 	subj_db = get_dbs(saccer_aa, "prot")
-	
+
 	# perform blastp using provided prot seq and provided aa db to confirm qseq_id in aa db
 	qseq_id = get_qseq_id(cse4_prot, subj_db)
 	
-	# get user tax id input
-	taxID_list = taxIDS
-	
-	# get protein and nucleotide fasta files
-	nucl_fasta_file, prot_fasta_file, all_specs, prot_specs = get_fasta_files(taxID_list)
+	# if this is the first run and fasta files need to be downloaded	
+	if download == "yes":
+		# get user tax id input
+		taxID_list = taxIDS
+
+		# get protein and nucleotide fasta files
+		nucl_fasta_file, prot_fasta_file, all_specs, prot_specs = get_fasta_files(taxID_list)
+
+		# write all specs name to txt file
+		write_list("all_specs", all_specs)
+
+		# write all specs with protein dataset to txt file
+		write_list("prot_data_specs", prot_specs)
+		
+	# if this is not the first run and/or user already have these 4 files
+	else:							   	
+		nucl_fasta_file = "nucl.fna"
+		prot_fasta_file = "prot.faa"
+		all_specs = read_list("all_specs.txt")
+		prot_specs = read_list("prot_data_specs.txt")
 	
 	blastp_hit_dict = {}
 	tblastn_hit_dict = {}
