@@ -76,7 +76,6 @@ def get_fasta_files(taxID_list):
 			spec_name = acs_asm_tuple[2]
 			
 			if " x " not in spec_name:
-				count += 1
 				acs_asm_list.append(acs_asm_tuple)
 				
 				# get all valid species names
@@ -110,7 +109,8 @@ def get_fasta_files(taxID_list):
 			if os.path.exists(prot_file):
 				prot_file_paths.append(prot_file)
 				for name in all_specs:
-					if name in acs_asm_tuple[2]:
+					print(name in acs_asm_tuple[2])
+					if name in acs_asm_tuple[2].replace("[", "").replace("]", ""):
 						prot_specs.append(name)
 				
 	if len(nucl_file_paths) > 0:
@@ -216,7 +216,7 @@ def blastp(query, db, evalue):
 					full_name_list = re.search(r'\[(.*?)\]', db_info[0]).group(1).split()
 
 				special_case1 = ["sp.", "aff."] 
-				special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS"]
+				special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS", "isolate"]
 				special_case3 = ["MAG"]
 
 				if any(name.lower() == special_word.lower() for special_word in special_case3 for name in full_name_list):
@@ -347,7 +347,7 @@ def tblastn(query, db, evalue):
 					full_name = full_name.replace("'", '')
 
 				special_case1 = ["sp.", "aff."] 
-				special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS"]
+				special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS", "isolate"]
 				special_case3 = ["MAG"]
 
 				full_name_list = full_name.split()
@@ -453,7 +453,7 @@ def tblastx(query, db, evalue):
 					full_name = full_name.replace("'", '')
 
 				special_case1 = ["sp.", "aff."] 
-				special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS"]
+				special_case2 = ["NRRL", "CBS", "JCM", "NYNU", "CRUB", "Ashbya", "UWO(PS)", "MTCC", "UWOPS", "isolate"]
 				special_case3 = ["MAG"]
 
 				full_name_list = full_name.split()
@@ -543,23 +543,23 @@ def read_list(filename):
 	return l
 
 def main(argv):
-	prot_query = "ndc10_calbicans.fasta"
-	prot_dataset_query = "calbicans.faa"
+	prot_query = "ndc10_kphaffii.fasta"
+	prot_dataset_query = "kphaffii.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
 	taxIDS = ["147537"]
-	download = "yes"
+	download = "no"
 	
 	nucl_fasta_file = None 
 	prot_fasta_file = None 
 	all_specs = None
 	prot_specs = None
 	
-# 	# make amino acid database for blastx subject
-# 	subj_db = get_dbs(prot_dataset_query, "prot")
+	# make amino acid database for blastx subject
+	subj_db = get_dbs(prot_dataset_query, "prot")
 
-# 	# perform blastp using provided prot seq and provided aa db to confirm qseq_id in aa db
-# 	qseq_id = get_qseq_id(prot_query, subj_db)
+	# perform blastp using provided prot seq and provided aa db to confirm qseq_id in aa db
+	qseq_id = get_qseq_id(prot_query, subj_db)
 	
 	# if this is the first run and fasta files need to be downloaded	
 	if download == "yes":
@@ -582,74 +582,74 @@ def main(argv):
 		all_specs = read_list("all_specs.txt")
 		prot_specs = read_list("prot_data_specs.txt")
 	
-# 	blastp_hit_dict = {}
-# 	tblastn_hit_dict = {}
+	blastp_hit_dict = {}
+	tblastn_hit_dict = {}
 	
-# 	# check if there is a protein fasta file
-# 	if prot_fasta_file is not None:
+	# check if there is a protein fasta file
+	if prot_fasta_file is not None:
 		
-# 		# get protein blast database
-# 		prot_db = get_dbs(prot_fasta_file, "prot")
+		# get protein blast database
+		prot_db = get_dbs(prot_fasta_file, "prot")
 	
-# 		# perform blastp of the query sequence against protein database, get dict of seq id and its info
-# 		blastp_hit_dict, blastp_rslt_file = blastp(prot_query, prot_db, blastp_evalue)
+		# perform blastp of the query sequence against protein database, get dict of seq id and its info
+		blastp_hit_dict, blastp_rslt_file = blastp(prot_query, prot_db, blastp_evalue)
 		
-# 		# write blast results to txt file
-# 		write_dict("blastp1", blastp_hit_dict)
+		# write blast results to txt file
+		write_dict("blastp1", blastp_hit_dict)
 		
-# 		# reverse blasto tp confirm results from 
-# 		if len(blastp_hit_dict) > 0:
-# 			blastp_rev_list = blastp_rev(blastp_hit_dict, subj_db, qseq_id)
+		# reverse blasto tp confirm results from 
+		if len(blastp_hit_dict) > 0:
+			blastp_rev_list = blastp_rev(blastp_hit_dict, subj_db, qseq_id)
 		
-# 			# update blastp_hit_dict after validation
-# 			# if 0 seqs were valid, make dict empty
-# 			if len(blastp_rev_list) == 0:
-# 				blastp_hit_dict = {}
-# 			# if len of valid seqs != len of dict, then dict must be updated
-# 			elif len(blastp_rev_list) != len(blastp_hit_dict):
-# 				update_blast_dict(blastp_hit_dict, blastp_rev_list)
+			# update blastp_hit_dict after validation
+			# if 0 seqs were valid, make dict empty
+			if len(blastp_rev_list) == 0:
+				blastp_hit_dict = {}
+			# if len of valid seqs != len of dict, then dict must be updated
+			elif len(blastp_rev_list) != len(blastp_hit_dict):
+				update_blast_dict(blastp_hit_dict, blastp_rev_list)
 			
-# 			# write updated blast results to txt file
-# 			write_dict("blastp2", blastp_hit_dict)
+			# write updated blast results to txt file
+			write_dict("blastp2", blastp_hit_dict)
 					
-# 			# write summary txt file
-# 			write_summary("blastp", blastp_hit_dict, prot_specs, all_specs)
+			# write summary txt file
+			write_summary("blastp", blastp_hit_dict, prot_specs, all_specs)
 					
-# 			# check if there is a nucleotide fasta file
-# 			if nucl_fasta_file is not None:
-# 				# remove blastp hit species from nucleotide fasta file, update nucl_fasta_file
-# 				nucl_fasta_file = rm_seqs_fasta(blastp_hit_dict, nucl_fasta_file)
+			# check if there is a nucleotide fasta file
+			if nucl_fasta_file is not None:
+				# remove blastp hit species from nucleotide fasta file, update nucl_fasta_file
+				nucl_fasta_file = rm_seqs_fasta(blastp_hit_dict, nucl_fasta_file)
 
 	
-# 	# check if there is a nucleotide fasta file
-# 	if nucl_fasta_file is not None:
+	# check if there is a nucleotide fasta file
+	if nucl_fasta_file is not None:
 		
-# 		# get nucleotide blast database
-# 		nucl_db = get_dbs(nucl_fasta_file, "nucl")
+		# get nucleotide blast database
+		nucl_db = get_dbs(nucl_fasta_file, "nucl")
 	
-# 		# perfrom tblasn of query sequence against nucleotide database, get dict of seq id and its info
-# 		tblastn_hit_dict, tblastn_rslt_file = tblastn(prot_query, nucl_db, tblastn_evalue)
+		# perfrom tblasn of query sequence against nucleotide database, get dict of seq id and its info
+		tblastn_hit_dict, tblastn_rslt_file = tblastn(prot_query, nucl_db, tblastn_evalue)
 		
-# 		# write blast results to txt file
-# 		write_dict("tblastn", tblastn_hit_dict)
+		# write blast results to txt file
+		write_dict("tblastn", tblastn_hit_dict)
 		
-# 		# perform blastx on each tblastn result, keep valid results
-# 		if len(tblastn_hit_dict) > 0:
-# 			blastx_rev_list = blastx_rev(tblastn_hit_dict, subj_db, qseq_id)
+		# perform blastx on each tblastn result, keep valid results
+		if len(tblastn_hit_dict) > 0:
+			blastx_rev_list = blastx_rev(tblastn_hit_dict, subj_db, qseq_id)
 		
-# 			# update tblastn_hit_dict after validation
-# 			# if 0 seqs were valid, make dict empty
-# 			if len(blastx_rev_list) == 0:
-# 				tblastn_hit_dict = {}
-# 			# if len of valid seqs != len of dict, then dict must be updated
-# 			elif len(blastx_rev_list) != len(tblastn_hit_dict):
-# 				update_blast_dict(tblastn_hit_dict, blastx_rev_list)
+			# update tblastn_hit_dict after validation
+			# if 0 seqs were valid, make dict empty
+			if len(blastx_rev_list) == 0:
+				tblastn_hit_dict = {}
+			# if len of valid seqs != len of dict, then dict must be updated
+			elif len(blastx_rev_list) != len(tblastn_hit_dict):
+				update_blast_dict(tblastn_hit_dict, blastx_rev_list)
 			
-# 			# write blast results to txt file
-# 			write_dict("blastx", tblastn_hit_dict)
+			# write blast results to txt file
+			write_dict("blastx", tblastn_hit_dict)
 					
-# 			# write summary txt file
-# 			write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)
+			# write summary txt file
+			write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)
 
 
 
