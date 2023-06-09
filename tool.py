@@ -268,10 +268,10 @@ def blast_nucl_ds(query, typ, db, evalue):
 
 	if blast_typ == "tblastn":
 		# run tblastn 
-		subprocess.run("tblastn -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore sseq"])
+		subprocess.run("tblastn -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gaps qstart qend sstart send evalue bitscore qseq sseq"])
 	elif blast_typ == "tblastx":
 		# run tblastx 
-		subprocess.run("tblastx -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore sseq"])
+		subprocess.run("tblastx -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gaps qstart qend sstart send evalue bitscore qseq sseq"])
 	
     # fill out information into the dictionary
 	# open blast result file
@@ -282,15 +282,27 @@ def blast_nucl_ds(query, typ, db, evalue):
 				col = rslt_line.strip().split("\t")
 				# get nucleotide id
 				seq_id = col[1]
+				# length of alignment
+				length = col[3]
+				# num of mistaches
+				mismatch = col[4]
+				# num of gaps
+				gaps = col[5]
+				# get start of alignment in query
+				qstart = col[6]
+				# get end of alignment in query
+				qend = col[7]
 				# get start of alignment in nucl subject
 				sstart = col[8]
 				# get end of alignment in nucl subject
 				send = col[9]
 				# get e-value
 				evalue = col[10]
-				# get aa seq
-				sseq = col[12]
-
+				# get query aa seq alignment
+				qseq = col[12]
+				# get subject aa seq alignment
+				sseq = col[13]
+				
 				# initialize string to capture info
 				db_info = None
 
@@ -334,7 +346,7 @@ def blast_nucl_ds(query, typ, db, evalue):
 				align_seq = ''.join(db_info[1:-1])
 
 				# fill out info for dictionary 
-				blast_hits[seq_id.split("|")[1]] = [spec_name, sstart, send, evalue, align_seq, sseq]
+				blast_hits[seq_id.split("|")[1]] = [spec_name, sstart, send, evalue, align_seq, qstart, qend, length, mismatch, gaps, qseq, sseq]
 						
 	# return results dict and file name
 	return blast_hits, blast_file_name
@@ -470,200 +482,4 @@ def read_list(filename):
 		for line in file:
 			l.append(line.strip("\n"))
 	return l
-
-def main(argv):
-	prot_query = "sir2_gene.fna"
-	ds_query = "scereviseae.fna"
-	blastp_evalue = "1e-01"  
-	tblastn_evalue = "1e-01" 
-	tblastx_evalue = "1e-01"
-	blastx_evalue = "1e-01"
-	taxIDS = ["4930"]
-	download = "no"
-	q_type = "nucl"
-	
-	nucl_fasta_file = None 
-	prot_fasta_file = None 
-	all_specs = None
-	prot_specs = None
-	
-	# if this is the first run and fasta files need to be downloaded	
-	if download == "yes":
-		# get user tax id input
-		taxID_list = taxIDS
-
-		# get protein and nucleotide fasta files
-		nucl_fasta_file, prot_fasta_file, all_specs, prot_specs = get_fasta_files(taxID_list)
-
-		# write all specs name to txt file
-		write_list("all_specs", all_specs)
-
-		# write all specs with protein dataset to txt file
-		write_list("prot_data_specs", prot_specs)
-
-	# if this is not the first run and/or user already have these 4 files
-	else:							   	
-		nucl_fasta_file = "nucl.fna"
-		prot_fasta_file = "prot.faa"
-		all_specs = read_list("all_specs.txt")
-		prot_specs = read_list("prot_data_specs.txt")
-
-	
-	if q_type == "prot":
-		
-		blastp_hit_dict = {}
-		tblastn_hit_dict = {}
-		
-		# make subject amino acid database for reciprical blasts 
-		subj_db = get_dbs(ds_query, q_type)
-
-		# perform blastp using provided prot seq and provided aa db to confirm qseq_id in aa db
-		qseq_id = get_qseq_id(prot_query, subj_db, q_type)
-
-		
-		# check if there is a protein fasta file
-		if prot_fasta_file is not None:
-
-			# get protein blast database
-			prot_db = get_dbs(prot_fasta_file, "prot")
-
-			# perform blastp of the query sequence against protein database, get dict of seq id and its info
-			blastp_hit_dict, blastp_rslt_file = blast_aa_ds(prot_query, prot_db, q_type, blastp_evalue)
-
-			# write blast results to txt file
-			write_dict("blastp1", blastp_hit_dict)
-
-			# reverse blasto tp confirm results from 
-			if len(blastp_hit_dict) > 0:
-				blastp_rev_list = recip_blast("blastp", blastp_hit_dict, subj_db, qseq_id)
-
-				# update blastp_hit_dict after validation
-				# if 0 seqs were valid, make dict empty
-				if len(blastp_rev_list) == 0:
-					blastp_hit_dict = {}
-				# if len of valid seqs != len of dict, then dict must be updated
-				elif len(blastp_rev_list) != len(blastp_hit_dict):
-					update_blast_dict(blastp_hit_dict, blastp_rev_list)
-
-				# write updated blast results to txt file
-				write_dict("blastp2", blastp_hit_dict)
-
-				# write summary txt file
-				write_summary("blastp", blastp_hit_dict, prot_specs, all_specs)
-
-				# check if there is a nucleotide fasta file
-				if nucl_fasta_file is not None:
-					# remove blastp hit species from nucleotide fasta file, update nucl_fasta_file
-					nucl_fasta_file = rm_seqs_fasta(blastp_hit_dict, nucl_fasta_file)
-
-
-		# check if there is a nucleotide fasta file
-		if nucl_fasta_file is not None:
-
-			# get nucleotide blast database
-			nucl_db = get_dbs(nucl_fasta_file, "nucl")
-
-			# perfrom tblasn of query sequence against nucleotide database, get dict of seq id and its info
-			tblastn_hit_dict, tblastn_rslt_file = blast_nucl_ds(prot_query, q_type, nucl_db, tblastn_evalue)
-
-			# write blast results to txt file
-			write_dict("tblastn", tblastn_hit_dict)
-
-			# perform blastx on each tblastn result, keep valid results
-			if len(tblastn_hit_dict) > 0:
-				blastx_rev_list = recip_blast("blastx", tblastn_hit_dict, subj_db, qseq_id)
-
-				# update tblastn_hit_dict after validation
-				# if 0 seqs were valid, make dict empty
-				if len(blastx_rev_list) == 0:
-					tblastn_hit_dict = {}
-				# if len of valid seqs != len of dict, then dict must be updated
-				elif len(blastx_rev_list) != len(tblastn_hit_dict):
-					update_blast_dict(tblastn_hit_dict, blastx_rev_list)
-
-				# write blast results to txt file
-				write_dict("blastx", tblastn_hit_dict)
-
-				# write summary txt file
-				write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)
-	
-	elif q_type == "nucl":
-		
-		blastx_hit_dict = {}
-		tblastx_hit_dict = {}
-		
-		# make subject amino acid database for reciprical blasts 
-		subj_db = get_dbs(ds_query, q_type)
-
-		# perform blastp using provided prot seq and provided aa db to confirm qseq_id in aa db
-		qseq_id = get_qseq_id(prot_query, subj_db, q_type)
-		
-		# check if there is a protein fasta file
-		if prot_fasta_file is not None:
-
-			# get protein blast database
-			prot_db = get_dbs(prot_fasta_file, "prot")
-
-			# perform blastx of the query sequence against protein database, get dict of seq id and its info
-			blastx_hit_dict, blastx_rslt_file = blast_aa_ds(prot_query, q_type, prot_db, blastx_evalue)
-
-			# write blast results to txt file
-			write_dict("blastx", blastx_hit_dict)
-
-			# reverse blasto tp confirm results from 
-			if len(blastx_hit_dict) > 0:
-				tblastn_rev_list = recip_blast("tblastn", blastx_hit_dict, subj_db, qseq_id)
-
-				# update blastx_hit_dict after validation
-				# if 0 seqs were valid, make dict empty
-				if len(tblastn_rev_list) == 0:
-					blastx_hit_dict = {}
-				# if len of valid seqs != len of dict, then dict must be updated
-				elif len(tblastn_rev_list) != len(blastx_hit_dict):
-					update_blast_dict(blastx_hit_dict, tblastn_rev_list)
-
-				# write updated blast results to txt file
-				write_dict("tblastn", blastx_hit_dict)
-
-				# write summary txt file
-				write_summary("blastx", blastx_hit_dict, prot_specs, all_specs)
-
-				# check if there is a nucleotide fasta file
-				if nucl_fasta_file is not None:
-					# remove blastx hit species from nucleotide fasta file, update nucl_fasta_file
-					nucl_fasta_file = rm_seqs_fasta(blastx_hit_dict, nucl_fasta_file)
-		
-		# check if there is a nucleotide fasta file
-		if nucl_fasta_file is not None:
-
-			# get nucleotide blast database
-			nucl_db = get_dbs(nucl_fasta_file, "nucl")
-
-			# perfrom tblasx of query sequence against nucleotide database, get dict of seq id and its info
-			tblastx_hit_dict, tblastx_rslt_file = blast_nucl_ds(prot_query, q_type, nucl_db, tblastx_evalue)
-
-			# write blast results to txt file
-			write_dict("tblastx1", tblastx_hit_dict)
-
-			# perform blastx on each tblastn result, keep valid results
-			if len(tblastx_hit_dict) > 0:
-				tblastx_rev_list = recip_blast("tblastx", tblastx_hit_dict, subj_db, qseq_id)
-
-				# update tblastn_hit_dict after validation
-				# if 0 seqs were valid, make dict empty
-				if len(tblastx_rev_list) == 0:
-					tblastn_hit_dict = {}
-				# if len of valid seqs != len of dict, then dict must be updated
-				elif len(tblastx_rev_list) != len(tblastx_hit_dict):
-					update_blast_dict(tblastx_hit_dict, tblastx_rev_list)
-
-				# write blast results to txt file
-				write_dict("tblastx2", tblastx_hit_dict)
-
-				# write summary txt file
-				write_summary("tblastx", tblastx_hit_dict, blastx_hit_dict.values(), all_specs)
-		
-
-if __name__ == "__main__":
-	main(sys.argv)
 
