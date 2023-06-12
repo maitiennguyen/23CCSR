@@ -136,18 +136,8 @@ def main(argv):
 				write_dict("blastx", tblastn_hit_dict)
 
 				# write summary txt file
-				write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)
-				
-				
-		# ANNOTATION
-		
-		annotation = BlastAnnot(tblastn_hit_dict)
-		no_gap_dict, gap_dict = annotation.process_seqs()
-		write_dict("no_gap", no_gap_dict)
-		write_dict("gap", gap_dict)
-		
-		for seq_id in no_gap_dict.keys():
-			stop_five, start, stop_three = annotation.find_codons(seq_id, nucl_db)
+				write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)			
+	
 	
 	elif q_type == "nucl":
 		
@@ -240,6 +230,27 @@ def main(argv):
 
 				# write summary txt file
 				write_summary("tblastx", tblastx_hit_dict, blastx_hit_dict.values(), all_specs)
+				
+	
+	# ANNOTATION
+	print("\n\nPerforming annotation on nucleotide sequences...")
+	
+	# make an annotation object
+	annotation = BlastAnnot(tblastn_hit_dict)
+	# get the inital list of seqs with gap (>= 10 aa or multiple alignments), and no gap (anything else)
+	no_gap_dict, gap_dict = annotation.process_seqs()
+	
+	write_dict("no_gap", no_gap_dict)
+
+	# find 5' and 5' stop codons, find start codon starting from 5' direction
+	annotated_dict, no_start_seqs = annotation.annotate_no_gaps(no_gap_dict, nucl_db)
+	
+	write_dict("annotated", annotated_dict)
+
+	# update no_gap_dict and gap_dict if any sequence in no_gap_dict does not have a start codon
+	annotation.update_gap_dicts(no_start_seqs, no_gap_dict, gap_dict)
+	
+	
 	
 	
 		

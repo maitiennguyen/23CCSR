@@ -99,45 +99,8 @@ class BlastAnnot():
 				no_gap_dict[seq_id] = self.blast_dict[seq_id]
 
 		return no_gap_dict, gap_dict
-	
-	
-	def find_start_codon(self, stop_codon):
-		scodon = "ATG"
-		frame = self.get_sframe(seq_id)
-		sstart = self.get_sstart(seq_id) 
-		mode = ''
-		whole_strand = ''
-		scodon_posits = []
-		if frame > 0:
-			mode = "plus"
-			whole_strand = self.get_sstrand(seq_id, db, mode)
-		else:
-			mode = "minus"	
-			# need to flip sequence since blast gives positions in 3'-5' but sequence in 5'-3', flip seq to 3'-5'
-			whole_strand = self.get_sstrand(seq_id, db, mode)[::-1]
 
-		curr_fiv_posit = sstart - 1
-		
-		while True:
-			if curr_fiv_posit < 0 :
-				break
-				
-			# flip sequence back to 5'-3'
-			codon = ''
-			if frame > 0:
-				codon = whole_strand[curr_fiv_posit:curr_fiv_posit + 3]
-			else:
-				codon = whole_strand[curr_fiv_posit - 3:curr_fiv_posit][::-1]
-				
-			if codon.upper() == scodon:
-				count += 1
-				scodon_posits.append(curr_fiv_posit)
-				
-			curr_fiv_posit -= 3
-			
-		return scodon_posits
-
-	
+	# find 5' and 3' stop codons, find first start codon starting from 5' stop codon
 	def find_codons(self, seq_id, db):
 		start_codon = "ATG"
 		stop_codons = ["TAG", "TAA", "TGA"]
@@ -163,7 +126,7 @@ class BlastAnnot():
 			# find stop codon in 3' direction
 			while True:
 				if curr_thr_posit + 3 > length:
-					# stop_three = (((length - frame) // 3) * 3)
+					stop_three = curr_thr_posit + 1
 					break
 					
 				codon = whole_strand[curr_thr_posit:curr_thr_posit+3]
@@ -177,12 +140,8 @@ class BlastAnnot():
 			# find stop codon in 5' direction
 			while True:
 				if curr_fiv_posit - 4 < 0:
-					# stop_five = abs(frame)
+					stop_five = abs(frame)
 					break
-				
-				# elif (abs(curr_thr_posit - curr_fiv_posit) + 1) / 3 > q_len - 1:
-				# 	stop_five = curr_fiv_posit
-				# 	break
 					
 				curr_fiv_posit -= 1
 				codon = whole_strand[curr_fiv_posit-3:curr_fiv_posit]
@@ -208,8 +167,6 @@ class BlastAnnot():
 
 					curr_start_posit += 3
 				
-				
-			
 		else:
 			mode = "minus"	
 			# need to flip sequence since blast gives positions in 3'-5' but sequence in 5'-3'
@@ -219,7 +176,7 @@ class BlastAnnot():
 			# find stop codon in 3' direction
 			while True:
 				if curr_thr_posit - 4 < 0:
-					# stop_three = abs(frame)
+					stop_three = abs(frame)
 					break
 				
 				# flip sequence back to 5'-3'
@@ -236,12 +193,8 @@ class BlastAnnot():
 			# find stop codon in 5' direction
 			while True:
 				if curr_fiv_posit + 3 > length:
-					# stop_five = (((length - frame) // 3) * 3)
+					stop_five = curr_fiv_posit - 2
 					break
-					
-				# elif (abs(curr_thr_posit - curr_fiv_posit) + 1) / 3 > q_len - 1:
-				# 	stop_five = curr_fiv_posit
-				# 	break
 					
 				# flip sequence back to 5'-3'
 				codon = whole_strand[curr_fiv_posit:curr_fiv_posit + 3][::-1]
@@ -268,4 +221,45 @@ class BlastAnnot():
 					curr_start_posit -= 3
 		
 		return stop_five, start, stop_three
+	
+	
+	# annotate stop and start codons for all seqs in no_gap
+	def annotate_no_gaps(self, no_gap_dict, db):
+		annotated_seqs = {}
+		no_start_codons = []
+
+		for seq_id in no_gap_dict.keys():
+			
+			stop_five, start, stop_three = self.find_codons(seq_id, db)
 		
+			if start is not None:
+				spec_name = self.get_spec_name(seq_id)
+				db_info = None
+				frame = self.get_sframe(seq_id)
+
+				if frame > 0:
+					stop_three = stop_three - 1
+
+					db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand plus -range {2}-{3}".format(db, seq_id, start, stop_three).split(), capture_output=True, text=True).stdout.split("\n")
+				else:
+					stop_three = stop_three + 3
+					start = start + 2
+
+					db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand minus -range {2}-{3}".format(db, seq_id, stop_three, start).split(), capture_output=True, text=True).stdout.split("\n")		
+
+				seq = ''.join(db_info[1:-1])
+
+				annotated_seqs[seq_id] = [spec_name, start, stop_three, frame, seq]
+				
+			else:
+				no_start_codons.append(seq_id)
+
+		return annotated_seqs, no_start_codons
+
+	# move seq to manual annotation dict if no start codon is found
+	def update_gap_dicts(self, no_start_codons, no_gap_dict, gap_dict):
+		if len(no_start_codons) > 0:
+			for seq_id in no_start_codons:
+				gap_dict[seq_id] = no_gap_dict[seq_id]
+				del no_gap_dict[seq_id]
+

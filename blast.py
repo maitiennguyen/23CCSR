@@ -151,7 +151,7 @@ def get_dbs(fasta_file, seq_type):
 	return file_name
 
 
-# write result of tblastn into a file for blastx
+# write result of tblastn and tblastx into a file for blastx
 def write_seq(blast_dict, key):
 	file_name = "blast_rslt_seq.txt"
 
