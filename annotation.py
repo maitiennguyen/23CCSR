@@ -262,4 +262,46 @@ class BlastAnnot():
 			for seq_id in no_start_codons:
 				gap_dict[seq_id] = no_gap_dict[seq_id]
 				del no_gap_dict[seq_id]
+				
+				
+	# table for manual annotation
+	def get_man_annot(self, gap_dict):
+		with open("man_anno_nucl_seqs.txt", "w") as file:
+			
+			file.write("ID" + "\t" + 
+						   "Species" + "\t" + 
+						   "E-Value" + "\t" + 
+						   "Subject Start" + "\t" + 
+						   "Subject End" + "\t" + 
+						   "Query Start" + "\t" + 
+						   "Query End" + "\t" + 
+						   "Query Alignment" + "\t" + 
+						   "Subject Alignment" + "\t" + 
+						   "Reading Frame" + "\n")
+			
+			for seq_id in gap_dict.keys():
+				spec_name = gap_dict[seq_id][0]
+				evalue = gap_dict[seq_id][3]
+				sstart = gap_dict[seq_id][1]
+				send =  gap_dict[seq_id][2]
+				qstart = gap_dict[seq_id][5]
+				qend = gap_dict[seq_id][6]
+				qseq = gap_dict[seq_id][10]
+				sseq = gap_dict[seq_id][11]
+				sframe = gap_dict[seq_id][12]
+				
+		
+				file.write(seq_id + "\t" + 
+						   spec_name + "\t" + 
+						   evalue + "\t" + 
+						   sstart + "\t" + 
+						   send + "\t" + 
+						   qstart + "\t" + 
+						   qend + "\t" + 
+						   qseq + "\t" + 
+						   sseq + "\t" + 
+						   sframe + "\n")
+			
+			
+		
 

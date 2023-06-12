@@ -1,5 +1,6 @@
 from blast import *
 from annotation import *
+from clustal import *
 
 def main(argv):
 	
@@ -239,8 +240,6 @@ def main(argv):
 	annotation = BlastAnnot(tblastn_hit_dict)
 	# get the inital list of seqs with gap (>= 10 aa or multiple alignments), and no gap (anything else)
 	no_gap_dict, gap_dict = annotation.process_seqs()
-	
-	write_dict("no_gap", no_gap_dict)
 
 	# find 5' and 5' stop codons, find start codon starting from 5' direction
 	annotated_dict, no_start_seqs = annotation.annotate_no_gaps(no_gap_dict, nucl_db)
@@ -250,10 +249,25 @@ def main(argv):
 	# update no_gap_dict and gap_dict if any sequence in no_gap_dict does not have a start codon
 	annotation.update_gap_dicts(no_start_seqs, no_gap_dict, gap_dict)
 	
+	# output file of nucleotide seqs that need manual annotation
+	annotation.get_man_annot(gap_dict)
+	print("Done")
 	
 	
+	# CLUSTAL
+	print("\n\nPerforming clustal analysis on nucleotide sequences...")
 	
-		
+	# make a clustal object
+	clustal = Clustal(annotated_dict, tblastn_hit_dict)
+	
+	# get fasta file for all seqs fron aumotated annotation
+	clustal.get_seqs_fasta()
+	
+	# run clustal with the result fasta file => output result file in clustal and fasta format
+	clustal.run_clustal()
+	print("Done")
+	
+	
 
 if __name__ == "__main__":
 	main(sys.argv)
