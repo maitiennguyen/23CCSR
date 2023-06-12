@@ -268,10 +268,10 @@ def blast_nucl_ds(query, typ, db, evalue):
 
 	if blast_typ == "tblastn":
 		# run tblastn 
-		subprocess.run("tblastn -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gaps qstart qend sstart send evalue bitscore qseq sseq"])
+		subprocess.run("tblastn -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gaps qstart qend sstart send evalue bitscore qseq sseq sframe sstrand"])
 	elif blast_typ == "tblastx":
 		# run tblastx 
-		subprocess.run("tblastx -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gaps qstart qend sstart send evalue bitscore qseq sseq"])
+		subprocess.run("tblastx -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gaps qstart qend sstart send evalue bitscore qseq sseq sframe"])
 	
     # fill out information into the dictionary
 	# open blast result file
@@ -302,6 +302,8 @@ def blast_nucl_ds(query, typ, db, evalue):
 				qseq = col[12]
 				# get subject aa seq alignment
 				sseq = col[13]
+				# get subject frame
+				sframe = col[14]
 				
 				# initialize string to capture info
 				db_info = None
@@ -346,7 +348,7 @@ def blast_nucl_ds(query, typ, db, evalue):
 				align_seq = ''.join(db_info[1:-1])
 
 				# fill out info for dictionary 
-				blast_hits[seq_id.split("|")[1]] = [spec_name, sstart, send, evalue, align_seq, qstart, qend, length, mismatch, gaps, qseq, sseq]
+				blast_hits[seq_id.split("|")[1]] = [spec_name, sstart, send, evalue, align_seq, qstart, qend, length, mismatch, gaps, qseq, sseq, sframe]
 						
 	# return results dict and file name
 	return blast_hits, blast_file_name
@@ -409,6 +411,9 @@ def rm_seqs_fasta(blast_dict, fasta_file):
 				seq_des = seq_des.replace("'", '')
 			if not any(spec_name in seq_des for spec_name in blastp_spec):
 				SeqIO.write(seq, file, "fasta")
+				
+	if os.stat(out_file).st_size == 0:
+		out_file = None
 
 	# return file name
 	return out_file
