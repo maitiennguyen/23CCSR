@@ -133,10 +133,7 @@ def get_fasta_files(taxID_list):
 
 		# assign file name
 		prot_fasta_file = "prot.faa"
-
-	# delete unecessary files and folders
-	# for taxID in taxID_list:
-	# 	subprocess.run("rm -r {0}".format(taxID).split())
+		
 
 	# return file names for nucl and prot fasta files
 	return nucl_fasta_file, prot_fasta_file, all_specs, prot_specs
@@ -152,11 +149,19 @@ def get_dbs(fasta_file, seq_type):
 
 
 # write result of tblastn and tblastx into a file for blastx
-def write_seq(blast_dict, key):
+def write_seq(blast_dict, key, typ):
 	file_name = "blast_rslt_seq.txt"
-
+	seq = ''
+	
+	# get seq to perform reciprocal blast
+	if typ == "prot":
+		db_info = subprocess.run("blastdbcmd -db {0} -entry {1}".format("prot", key).split(), capture_output=True, text=True).stdout.split("\n")
+		seq = ''.join(db_info[1:-1])
+	elif typ == "nucl":
+		seq = blast_dict[key][4]
+		
 	# put key_val into fasta format (seq, id, description)
-	blast_seq = SeqIO.SeqRecord(Seq(blast_dict[key][4]), id=key, description=blast_dict[key][0])
+	blast_seq = SeqIO.SeqRecord(Seq(seq), id=key, description=blast_dict[key][0][0])
 	
 	# write to file
 	with open(file_name, "w") as fasta_file:
@@ -198,7 +203,7 @@ def blast_aa_ds(query, typ, db, evalue):
 		# run blastx 
 		subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -evalue {4} -num_threads 8".format(query, db, blast_file_name, "6", evalue).split())
 
-		# fill out information into the dictionary
+	# fill out information into the dictionary
 	# open blast result file
 	# make sure file is not empty
 	if os.stat(blast_file_name).st_size != 0:
@@ -242,11 +247,11 @@ def blast_aa_ds(query, typ, db, evalue):
 				else:
 					spec_name = ' '.join(full_name_list[:2])
 
-				# get alignment subsequence
-				align_seq = ''.join(db_info[1:-1])
-
 				# fill out info for dictionary 
-				blast_hits[seq_id] = [spec_name, sstart, send, evalue, align_seq]
+				if seq_id not in blast_hits.keys():
+					blast_hits[seq_id] = [[spec_name, sstart, send, evalue]]
+				else:
+					blast_hits[seq_id].append([spec_name, sstart, send, evalue])
 												
 	# return dict results and file name 
 	return blast_hits, blast_file_name
@@ -363,17 +368,22 @@ def recip_blast(blast_type, query_dict, db, id_of_interest):
 	# for every seq result from blastp
 	for seq_id in query_dict.keys():
 
-		# write seq to txt file
-		query = write_seq(query_dict, seq_id)
-
 		# run reciprical blast with result from first blast as query against protein of interesst species protein dataset
 		if blast_type == "blastp":
+			# write seq to txt file
+			query = write_seq(query_dict, seq_id, "prot")
 			subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		elif blast_type == "blastx":
+			# write seq to txt file
+			query = write_seq(query_dict, seq_id, "prot")
 			subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		elif blast_type == "tblastn":
+			# write seq to txt file
+			query = write_seq(query_dict, seq_id, "nucl")
 			subprocess.run("tblastn -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		elif blast_type == "tblastx":
+			# write seq to txt file
+			query = write_seq(query_dict, seq_id, "nucl")
 			subprocess.run("tblastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 
 		# make sure file is not empty
@@ -437,12 +447,13 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 		# keep track of species that has been seen
 		added_spec = {}
 		
-		# add all species adn their seq id in blast result into dict
+		# add all species adn their seq id in blast result into dict, add how mnay hits per id
 		for key, value in blast_dict.items():
-			if value[0] not in added_spec.keys():
-				added_spec[value[0]] = [key]
+			spec_name = value[0][0]
+			if spec_name not in added_spec.keys():
+				added_spec[spec_name] = [(key, len(value))]
 			else:
-				added_spec[value[0]].append(key)
+				added_spec[spec_name].append((key, len(value)))
 				
 		# check of species has either been found in protein blast round or does not have protein dataset
 		for spec in all_specs_list:
@@ -470,7 +481,7 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 			if value != 0:
 				count = str(len(value))
 				if len(value) != 0:
-					hit_ids = ', '.join(value)
+					hit_ids = ', '.join(f'{seq_id} ({num_hit})' for seq_id, num_hit in value)
 
 			file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
 	
