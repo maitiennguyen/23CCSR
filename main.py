@@ -1,3 +1,4 @@
+import sys
 from blast import *
 from annotation import *
 from clustal import *
