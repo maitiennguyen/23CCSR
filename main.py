@@ -7,20 +7,22 @@ def main(argv):
 	
 	# BLAST
 	
-	seq_query = "sir2_gene.fna"
-	ds_query = "scereviseae.fna"
+	seq_query = "ndc10_scerevisiae.fasta"
+	ds_query = "scerevisiae.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
 	tblastx_evalue = "1e-01"
 	blastx_evalue = "1e-01"
-	taxIDS = ["34365"]
+	taxIDS = ["4930"]
 	download = "no"
-	q_type = "nucl"
+	q_type = "prot"
+	q_spec_name = "Saccharomyces cerevisiae"
 	
 	nucl_fasta_file = None 
 	prot_fasta_file = None 
 	all_specs = None
 	prot_specs = None
+	
 	
 	# if this is the first run and fasta files need to be downloaded	
 	if download == "yes":
@@ -234,25 +236,25 @@ def main(argv):
 				write_summary("tblastx", tblastx_hit_dict, blastx_hit_dict.values(), all_specs)
 				
 	
-# 	# ANNOTATION
-# 	print("\n\nPerforming annotation on nucleotide sequences...")
+	# ANNOTATION
+	print("\n\nPerforming annotation on nucleotide sequences...")
 	
-# 	# make an annotation object
-# 	annotation = BlastAnnot(tblastn_hit_dict)
-# 	# get the inital list of seqs with gap (>= 10 aa or multiple alignments), and no gap (anything else)
-# 	no_gap_dict, gap_dict = annotation.process_seqs()
+	# make an annotation object
+	annotation = BlastAnnot(tblastn_hit_dict, q_spec_name)
+	# get the inital list of seqs with gap (>= 10 aa or multiple alignments), and no gap (anything else)
+	no_gap_dict, gap_dict = annotation.process_seqs()
 
-# 	# find 5' and 5' stop codons, find start codon starting from 5' direction
-# 	annotated_dict, no_start_seqs = annotation.annotate_no_gaps(no_gap_dict, nucl_db)
+	# find 5' and 5' stop codons, find start codon starting from 5' direction
+	annotated_dict, no_start_seqs = annotation.annotate_no_gaps(no_gap_dict, nucl_db)
 	
-# 	write_dict("annotated", annotated_dict)
+	write_dict("annotated", annotated_dict)
 
-# 	# update no_gap_dict and gap_dict if any sequence in no_gap_dict does not have a start codon
-# 	annotation.update_gap_dicts(no_start_seqs, no_gap_dict, gap_dict)
+	# update no_gap_dict and gap_dict if any sequence in no_gap_dict does not have a start codon
+	annotation.update_gap_dicts(no_start_seqs, no_gap_dict, gap_dict)
 	
-# 	# output file of nucleotide seqs that need manual annotation
-# 	annotation.get_man_annot(gap_dict)
-# 	print("Done")
+	# output file of nucleotide seqs that need manual annotation
+	annotation.get_man_annot(gap_dict)
+	print("Done")
 	
 	
 # 	# CLUSTAL

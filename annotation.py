@@ -2,74 +2,87 @@ import subprocess
 
 class BlastAnnot():
 	
-	def __init__(self, blast_dict):
+	def __init__(self, blast_dict, query_spec):
 		self.blast_dict = blast_dict
 		self.seq_ids = blast_dict.keys()
+		self.q_spec = query_spec
 	
 	
 	# get species name
 	def get_spec_name(self, seq_id):
-		return self.blast_dict[seq_id][0]
+		return self.blast_dict[seq_id][0][0]
 	
 	
 	# get alignment start position of subject seq
 	def get_sstart(self, seq_id):
-		return int(self.blast_dict[seq_id][1])
+		starts = []
+		for info in self.blast_dict[seq_id]:
+			starts.append(int(info[1]))
+		return starts
 	
 	
 	# get alignment end position of subject seq
 	def get_send(self, seq_id):
-		return int(self.blast_dict[seq_id][2])
+		ends = []
+		for info in self.blast_dict[seq_id]:
+			ends.append(int(info[2]))
+		return ends
 	
 	
 	# get evalue
 	def get_evalue(self, seq_id):
-		return int(self.blast_dict[seq_id][3])
-	
-	
-	# get subject nucl alignment seq w/o gaps
-	def get_nucl_sseq(self, seq_id):
-		return self.blast_dict[seq_id][4]
+		evals = []
+		for info in self.blast_dict[seq_id]:
+			evals.append(info[3])
+		return evals
 	
 	
 	# get alignment start position of query seq
 	def get_qstart(self, seq_id):
-		return int(self.blast_dict[seq_id][5])
+		starts = []
+		for info in self.blast_dict[seq_id]:
+			starts.append(int(info[4]))
+		return starts
 	
 	
 	# get alignment end position of query seq
 	def get_qend(self, seq_id):
-		return int(self.blast_dict[seq_id][6])
+		ends = []
+		for info in self.blast_dict[seq_id]:
+			ends.append(int(info[5]))
+		return ends
 	
 	
 	# get length of alignment
 	def get_length(self, seq_id):
-		return int(self.blast_dict[seq_id][7])
-	
-	
-	# get number of mismatches in alignment
-	def get_num_mismatch(self, seq_id):
-		return int(self.blast_dict[seq_id][8])
-	
-	
-	# get number of gaps in alignment
-	def get_tot_num_gaps(self, seq_id):
-		return int(self.blast_dict[seq_id][9])
+		lens = []
+		for info in self.blast_dict[seq_id]:
+			lens.append(int(info[6]))
+		return lens
 	
 	
 	# get query alignment seq w/ gaps
 	def get_qseq(self, seq_id):
-		return self.blast_dict[seq_id][10]
+		qseq = []
+		for info in self.blast_dict[seq_id]:
+			qseq.append(info[7])
+		return qseq
 	
 	
 	# get subject alignment seq w/ gaps
 	def get_sseq(self, seq_id):
-		return self.blast_dict[seq_id][11]
+		sseq = []
+		for info in self.blast_dict[seq_id]:
+			sseq.append(info[8])
+		return sseq
 	
 	
 	# get subject frame
 	def get_sframe(self, seq_id):
-		return int(self.blast_dict[seq_id][12])
+		frames = []
+		for info in self.blast_dict[seq_id]:
+			frames.append(int(info[9]))
+		return frames
 	
 	
 	# get subject strand
@@ -80,11 +93,11 @@ class BlastAnnot():
 	
 	# get num of gaps in query sequence
 	def query_sig_gaps(self, seq_id):
-		seq = self.get_qseq(seq_id)
-		if "----------" in seq:
-			return True
-		else:
-			return False
+		for seq in self.get_qseq(seq_id):
+			if "----------" in seq:
+				return True
+			
+		return False
 
 	# filter sequences into those w/ gaps and those w/o gaps
 	def process_seqs(self):
@@ -93,7 +106,7 @@ class BlastAnnot():
 
 		for seq_id in self.seq_ids:
 			sig_gaps = self.query_sig_gaps(seq_id)
-			if sig_gaps is True:
+			if sig_gaps is True or len(self.blast_dict[seq_id]) > 1:
 				gap_dict[seq_id] = self.blast_dict[seq_id]
 			else:
 				no_gap_dict[seq_id] = self.blast_dict[seq_id]
@@ -104,9 +117,9 @@ class BlastAnnot():
 	def find_codons(self, seq_id, db):
 		start_codon = "ATG"
 		stop_codons = ["TAG", "TAA", "TGA"]
-		frame = self.get_sframe(seq_id)
-		start_posit = self.get_sstart(seq_id)
-		end_posit = self.get_send(seq_id)
+		frame = self.get_sframe(seq_id)[0]
+		start_posit = self.get_sstart(seq_id)[0]
+		end_posit = self.get_send(seq_id)[0]
 		curr_fiv_posit = start_posit 
 		curr_thr_posit = end_posit
 		curr_start_posit = None
@@ -233,9 +246,9 @@ class BlastAnnot():
 			stop_five, start, stop_three = self.find_codons(seq_id, db)
 		
 			if start is not None:
-				spec_name = self.get_spec_name(seq_id)
+				spec_name = self.get_spec_name(seq_id)[0]
 				db_info = None
-				frame = self.get_sframe(seq_id)
+				frame = self.get_sframe(seq_id)[0]
 
 				if frame > 0:
 					stop_three = stop_three - 1
@@ -248,6 +261,9 @@ class BlastAnnot():
 					db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand minus -range {2}-{3}".format(db, seq_id, stop_three, start).split(), capture_output=True, text=True).stdout.split("\n")		
 
 				seq = ''.join(db_info[1:-1])
+				
+				if len(seq) % 3 != 0:
+					raise Exception("annotation nucl sequence is not divisible by 3.")
 
 				annotated_seqs[seq_id] = [spec_name, start, stop_three, frame, seq]
 				
@@ -266,41 +282,44 @@ class BlastAnnot():
 				
 	# table for manual annotation
 	def get_man_annot(self, gap_dict):
+
 		with open("man_anno_nucl_seqs.txt", "w") as file:
 			
-			file.write("ID" + "\t" + 
-						   "Species" + "\t" + 
-						   "E-Value" + "\t" + 
-						   "Subject Start" + "\t" + 
-						   "Subject End" + "\t" + 
-						   "Query Start" + "\t" + 
-						   "Query End" + "\t" + 
-						   "Query Alignment" + "\t" + 
-						   "Subject Alignment" + "\t" + 
-						   "Reading Frame" + "\n")
+			file.write("Query_Species" + "\t" + 
+					   "Subject_ID" + "\t" + 
+					   "Subject_Species" + "\t" + 
+					   "E-Value" + "\t" + 
+					   "Subject_Start" + "\t" + 
+					   "Subject_End" + "\t" + 
+					   "Query_Start" + "\t" + 
+					   "Query_End" + "\t" + 
+					   "Query_Alignment" + "\t" + 
+					   "Subject_Alignment" + "\t" + 
+					   "Reading_Frame" + "\n")
 			
 			for seq_id in gap_dict.keys():
-				spec_name = gap_dict[seq_id][0]
-				evalue = gap_dict[seq_id][3]
-				sstart = gap_dict[seq_id][1]
-				send =  gap_dict[seq_id][2]
-				qstart = gap_dict[seq_id][5]
-				qend = gap_dict[seq_id][6]
-				qseq = gap_dict[seq_id][10]
-				sseq = gap_dict[seq_id][11]
-				sframe = gap_dict[seq_id][12]
-				
+				spec_name = self.get_spec_name(seq_id)
+				evalue = self.get_evalue(seq_id)
+				sstart = self.get_sstart(seq_id)
+				send = self.get_send(seq_id)
+				qstart = self.get_qstart(seq_id)
+				qend = self.get_qend(seq_id)
+				qseq = self.get_qseq(seq_id)
+				sseq = self.get_sseq(seq_id)
+				sframe = self.get_sframe(seq_id)
+
 		
-				file.write(seq_id + "\t" + 
+				file.write(self.q_spec + "t" +
+						   seq_id + "\t" + 
 						   spec_name + "\t" + 
-						   evalue + "\t" + 
-						   sstart + "\t" + 
-						   send + "\t" + 
-						   qstart + "\t" + 
-						   qend + "\t" + 
-						   qseq + "\t" + 
-						   sseq + "\t" + 
-						   sframe + "\n")
+						   ', '.join(evalue) + "\t" + 
+						   ', '.join([str(item) for item in sstart]) + "\t" + 
+						   ', '.join([str(item) for item in send]) + "\t" + 
+						   ', '.join([str(item) for item in qstart]) + "\t" + 
+						   ', '.join([str(item) for item in qend]) + "\t" + 
+						   ', '.join(qseq) + "\t" + 
+						   ', '.join(sseq) + "\t" + 
+						   ', '.join([str(item) for item in sframe]) + "\n")
 			
 			
 		
