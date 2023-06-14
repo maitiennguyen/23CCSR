@@ -309,7 +309,7 @@ class BlastAnnot():
 				sframe = self.get_sframe(seq_id)
 
 		
-				file.write(self.q_spec + "t" +
+				file.write(self.q_spec + "\t" +
 						   seq_id + "\t" + 
 						   spec_name + "\t" + 
 						   ', '.join(evalue) + "\t" + 
