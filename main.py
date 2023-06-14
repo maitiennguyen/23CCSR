@@ -13,7 +13,7 @@ def main(argv):
 	tblastn_evalue = "1e-01" 
 	tblastx_evalue = "1e-01"
 	blastx_evalue = "1e-01"
-	taxIDS = ["4930"]
+	taxIDS = ["29834"]
 	download = "no"
 	q_type = "prot"
 	q_spec_name = "Saccharomyces cerevisiae"
@@ -22,6 +22,12 @@ def main(argv):
 	prot_fasta_file = None 
 	all_specs = None
 	prot_specs = None
+	
+	
+	prot_db = None
+	nucl_db = None
+	prot_dict = None
+	nucl_dict = None
 	
 	
 	# if this is the first run and fasta files need to be downloaded	
@@ -140,7 +146,10 @@ def main(argv):
 				write_dict("blastx", tblastn_hit_dict)
 
 				# write summary txt file
-				write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)			
+				write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)
+				
+		prot_dict = blastp_hit_dict
+		nucl_dict = tblastn_hit_dict
 	
 	
 	elif q_type == "nucl":
@@ -235,12 +244,15 @@ def main(argv):
 				# write summary txt file
 				write_summary("tblastx", tblastx_hit_dict, blastx_hit_dict.values(), all_specs)
 				
+		prot_dict = blastx_hit_dict
+		nucl_dict = tblastx_hit_dict
+				
 	
 	# ANNOTATION
 	print("\n\nPerforming annotation on nucleotide sequences...")
 	
 	# make an annotation object
-	annotation = BlastAnnot(tblastn_hit_dict, q_spec_name)
+	annotation = BlastAnnot(nucl_dict, q_spec_name)
 	# get the inital list of seqs with gap (>= 10 aa or multiple alignments), and no gap (anything else)
 	no_gap_dict, gap_dict = annotation.process_seqs()
 
@@ -257,18 +269,18 @@ def main(argv):
 	print("Done")
 	
 	
-# 	# CLUSTAL
-# 	print("\n\nPerforming clustal analysis on nucleotide sequences...")
+	# CLUSTAL
+	print("\n\nPerforming clustal analysis on nucleotide sequences...")
 	
-# 	# make a clustal object
-# 	clustal = Clustal(annotated_dict, tblastn_hit_dict)
+	# make a clustal object
+	clustal = Clustal(annotated_dict, prot_dict, prot_db)
 	
-# 	# get fasta file for all seqs fron aumotated annotation
-# 	clustal.get_seqs_fasta()
+	# get fasta file for all seqs fron aumotated annotation
+	clustal.get_seqs_fasta()
 	
-# 	# run clustal with the result fasta file => output result file in clustal and fasta format
-# 	clustal.run_clustal()
-# 	print("Done")
+	# run clustal with the result fasta file => output result file in clustal and fasta format
+	clustal.run_clustal()
+	print("Done")
 	
 	
 

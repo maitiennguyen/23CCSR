@@ -246,7 +246,7 @@ class BlastAnnot():
 			stop_five, start, stop_three = self.find_codons(seq_id, db)
 		
 			if start is not None:
-				spec_name = self.get_spec_name(seq_id)[0]
+				spec_name = self.get_spec_name(seq_id)
 				db_info = None
 				frame = self.get_sframe(seq_id)[0]
 
