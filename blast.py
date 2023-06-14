@@ -182,7 +182,11 @@ def write_seq(blast_dict, key, typ, db):
 			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand minus -range {2}-{3}".format(db, key, end, start).split(), capture_output=True, text=True).stdout.split("\n")
 			
 		else:
-			raise Exception("Reading frames with different strands included.")
+			posits = starts + ends
+			posits = [int(p) for p in posits]
+			start = min(posits)
+			end = max(posits)
+			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand plus -range {2}-{3}".format(db, key, start, end).split(), capture_output=True, text=True).stdout.split("\n")
 			
 		seq = ''.join(db_info[1:-1])
 	
