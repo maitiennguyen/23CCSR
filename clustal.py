@@ -48,7 +48,7 @@ class Clustal():
 			with open(file_name, "a") as fasta_file:
 				SeqIO.write(fasta_seq, fasta_file, "fasta")
 		
-		self.nucl_filename = file_name
+		self.rslt_filename = file_name
 		
 	
 	# add spec name next to alignment in clustal file format 
@@ -92,8 +92,8 @@ class Clustal():
 			out_name1 = "auto_algn.clustal"
 			out_name2 = "auto_algn.fasta"
 
-			subprocess.run("clustalo -i {0} -o {1} --outfmt=clustal --resno --threads=16 --force".format(self.nucl_filename, out_name1).split())
-			subprocess.run("clustalo -i {0} -o {1} --outfmt=fasta --resno --threads=16 --force".format(self.nucl_filename, out_name2).split())
+			subprocess.run("clustalo -i {0} -o {1} --outfmt=clustal --resno --threads=16 --force".format(self.rslt_filename, out_name1).split())
+			subprocess.run("clustalo -i {0} -o {1} --outfmt=fasta --resno --threads=16 --force".format(self.rslt_filename, out_name2).split())
 
 			self.add_spec_names(out_name1)
 			

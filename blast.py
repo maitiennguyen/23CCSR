@@ -164,28 +164,27 @@ def write_seq(blast_dict, key, typ, db):
 		frames = []
 		start = None
 		end = None
+		db_info = None
 		
 		for info in blast_dict[key]:
 			starts.append(info[1])
 			ends.append(info[2])
 			frames.append(info[9])
-			
-		if all(f == frames[0] for f in frames):
-			frame = int(frames[0])
-			
-		else:
-			raise Exception("Different reading frames.")
-			
-		if frame > 0:
+		
+		if all(int(frame) > 0 for frame in frames):
 			start = min(starts)
 			end = max(ends)
 			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand plus -range {2}-{3}".format(db, key, start, end).split(), capture_output=True, text=True).stdout.split("\n")
-			seq = ''.join(db_info[1:-1])
-		else:
+			
+		elif all(int(frame) < 0 for frame in frames):
 			start = max(starts)
 			end = min(ends)
 			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand minus -range {2}-{3}".format(db, key, end, start).split(), capture_output=True, text=True).stdout.split("\n")
-			seq = ''.join(db_info[1:-1])
+			
+		else:
+			raise Exception("Reading frames with different strands included.")
+			
+		seq = ''.join(db_info[1:-1])
 	
 	# put key_val into fasta format (seq, id, description)
 	blast_seq = SeqIO.SeqRecord(Seq(seq), id=key, description=blast_dict[key][0][0])

@@ -13,7 +13,7 @@ def main(argv):
 	tblastn_evalue = "1e-01" 
 	tblastx_evalue = "1e-01"
 	blastx_evalue = "1e-01"
-	taxIDS = ["29834"]
+	taxIDS = ["0"]
 	download = "no"
 	q_type = "prot"
 	q_spec_name = "Saccharomyces cerevisiae"
