@@ -133,10 +133,7 @@ def get_fasta_files(taxID_list):
 
 		# assign file name
 		prot_fasta_file = "prot.faa"
-
-	# delete unecessary files and folders
-	# for taxID in taxID_list:
-	# 	subprocess.run("rm -r {0}".format(taxID).split())
+		
 
 	# return file names for nucl and prot fasta files
 	return nucl_fasta_file, prot_fasta_file, all_specs, prot_specs
@@ -152,11 +149,46 @@ def get_dbs(fasta_file, seq_type):
 
 
 # write result of tblastn and tblastx into a file for blastx
-def write_seq(blast_dict, key):
-	file_name = "blast_rslt_seq.txt"
-
+def write_seq(blast_dict, key, typ, db):
+	file_name = "recip_seq.txt"
+	seq = ''
+	
+	# get seq to perform reciprocal blast
+	if typ == "prot":
+		db_info = subprocess.run("blastdbcmd -db {0} -entry {1}".format(db, key).split(), capture_output=True, text=True).stdout.split("\n")
+		seq = ''.join(db_info[1:-1])
+		
+	elif typ == "nucl":
+		starts = []
+		ends = []
+		frames = []
+		start = None
+		end = None
+		
+		for info in blast_dict[key]:
+			starts.append(info[1])
+			ends.append(info[2])
+			frames.append(info[9])
+			
+		if all(f == frames[0] for f in frames):
+			frame = int(frames[0])
+			
+		else:
+			raise Exception("Different reading frames.")
+			
+		if frame > 0:
+			start = min(starts)
+			end = max(ends)
+			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand plus -range {2}-{3}".format(db, key, start, end).split(), capture_output=True, text=True).stdout.split("\n")
+			seq = ''.join(db_info[1:-1])
+		else:
+			start = max(starts)
+			end = min(ends)
+			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand minus -range {2}-{3}".format(db, key, end, start).split(), capture_output=True, text=True).stdout.split("\n")
+			seq = ''.join(db_info[1:-1])
+	
 	# put key_val into fasta format (seq, id, description)
-	blast_seq = SeqIO.SeqRecord(Seq(blast_dict[key][4]), id=key, description=blast_dict[key][0])
+	blast_seq = SeqIO.SeqRecord(Seq(seq), id=key, description=blast_dict[key][0][0])
 	
 	# write to file
 	with open(file_name, "w") as fasta_file:
@@ -198,7 +230,7 @@ def blast_aa_ds(query, typ, db, evalue):
 		# run blastx 
 		subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -evalue {4} -num_threads 8".format(query, db, blast_file_name, "6", evalue).split())
 
-		# fill out information into the dictionary
+	# fill out information into the dictionary
 	# open blast result file
 	# make sure file is not empty
 	if os.stat(blast_file_name).st_size != 0:
@@ -215,7 +247,7 @@ def blast_aa_ds(query, typ, db, evalue):
 				evalue = col[10]
 
 				# run blastdbcmd to access database to get subsequence and species name
-				db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3}".format(db, seq_id, sstart, send).split(), capture_output=True, text=True).stdout.split("\n")
+				db_info = subprocess.run("blastdbcmd -db {0} -entry {1}".format(db, seq_id, sstart, send).split(), capture_output=True, text=True).stdout.split("\n")
 
 				# get species name
 				spec_name = None
@@ -242,11 +274,11 @@ def blast_aa_ds(query, typ, db, evalue):
 				else:
 					spec_name = ' '.join(full_name_list[:2])
 
-				# get alignment subsequence
-				align_seq = ''.join(db_info[1:-1])
-
 				# fill out info for dictionary 
-				blast_hits[seq_id] = [spec_name, sstart, send, evalue, align_seq]
+				if seq_id not in blast_hits.keys():
+					blast_hits[seq_id] = [[spec_name, sstart, send, evalue]]
+				else:
+					blast_hits[seq_id].append([spec_name, sstart, send, evalue])
 												
 	# return dict results and file name 
 	return blast_hits, blast_file_name
@@ -268,10 +300,10 @@ def blast_nucl_ds(query, typ, db, evalue):
 
 	if blast_typ == "tblastn":
 		# run tblastn 
-		subprocess.run("tblastn -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gaps qstart qend sstart send evalue bitscore qseq sseq sframe sstrand"])
+		subprocess.run("tblastn -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid length qstart qend sstart send evalue qseq sseq sframe"])
 	elif blast_typ == "tblastx":
 		# run tblastx 
-		subprocess.run("tblastx -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid pident length mismatch gaps qstart qend sstart send evalue bitscore qseq sseq sframe"])
+		subprocess.run("tblastx -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid length qstart qend sstart send evalue qseq sseq sframe"])
 	
     # fill out information into the dictionary
 	# open blast result file
@@ -283,27 +315,23 @@ def blast_nucl_ds(query, typ, db, evalue):
 				# get nucleotide id
 				seq_id = col[1]
 				# length of alignment
-				length = col[3]
-				# num of mistaches
-				mismatch = col[4]
-				# num of gaps
-				gaps = col[5]
+				length = col[2]
 				# get start of alignment in query
-				qstart = col[6]
+				qstart = col[3]
 				# get end of alignment in query
-				qend = col[7]
+				qend = col[4]
 				# get start of alignment in nucl subject
-				sstart = col[8]
+				sstart = col[5]
 				# get end of alignment in nucl subject
-				send = col[9]
+				send = col[6]
 				# get e-value
-				evalue = col[10]
+				evalue = col[7]
 				# get query aa seq alignment
-				qseq = col[12]
+				qseq = col[8]
 				# get subject aa seq alignment
-				sseq = col[13]
+				sseq = col[9]
 				# get subject frame
-				sframe = col[14]
+				sframe = col[10]
 				
 				# initialize string to capture info
 				db_info = None
@@ -311,12 +339,12 @@ def blast_nucl_ds(query, typ, db, evalue):
 				# if plus strand
 				if int(sstart) < int(send):
 					# run blastdbcmd to access database to get subsequence and species name
-					db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3} -strand plus".format(db, seq_id, sstart, send).split(), capture_output=True, text=True).stdout.split("\n")
+					db_info = subprocess.run("blastdbcmd -db {0} -entry {1}".format(db, seq_id, sstart, send).split(), capture_output=True, text=True).stdout.split("\n")
 
 				# if mi nus strand
 				else:
 					# run blastdbcmd to access database to get subsequence and species name
-					db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -range {2}-{3} -strand minus".format(db, seq_id, send, sstart).split(), capture_output=True, text=True).stdout.split("\n")
+					db_info = subprocess.run("blastdbcmd -db {0} -entry {1}".format(db, seq_id, send, sstart).split(), capture_output=True, text=True).stdout.split("\n")
 
 				# get species name
 				spec_name = None
@@ -344,17 +372,18 @@ def blast_nucl_ds(query, typ, db, evalue):
 				else:
 					spec_name = ' '.join(full_name_list[1:3])
 
-				# get alignment subsequence
-				align_seq = ''.join(db_info[1:-1])
-
 				# fill out info for dictionary 
-				blast_hits[seq_id.split("|")[1]] = [spec_name, sstart, send, evalue, align_seq, qstart, qend, length, mismatch, gaps, qseq, sseq, sframe]
+				seq_id = seq_id.split("|")[1]
+				if seq_id not in blast_hits.keys():
+					blast_hits[seq_id] = [[spec_name, sstart, send, evalue, qstart, qend, length, qseq, sseq, sframe]]
+				else:
+					blast_hits[seq_id].append([spec_name, sstart, send, evalue, qstart, qend, length, qseq, sseq, sframe])
 						
 	# return results dict and file name
 	return blast_hits, blast_file_name
 
 # reverse blast
-def recip_blast(blast_type, query_dict, db, id_of_interest):	
+def recip_blast(blast_type, query_dict, db, id_of_interest, db2):	
 	blast_file_name = blast_type + "_rev_results.blasted"
 
 	# list of valid hits id
@@ -363,17 +392,22 @@ def recip_blast(blast_type, query_dict, db, id_of_interest):
 	# for every seq result from blastp
 	for seq_id in query_dict.keys():
 
-		# write seq to txt file
-		query = write_seq(query_dict, seq_id)
-
 		# run reciprical blast with result from first blast as query against protein of interesst species protein dataset
 		if blast_type == "blastp":
+			# write seq to txt file
+			query = write_seq(query_dict, seq_id, "prot", db2)
 			subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		elif blast_type == "blastx":
+			# write seq to txt file
+			query = write_seq(query_dict, seq_id, "nucl", db2)
 			subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		elif blast_type == "tblastn":
+			# write seq to txt file
+			query = write_seq(query_dict, seq_id, "prot", db2)
 			subprocess.run("tblastn -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 		elif blast_type == "tblastx":
+			# write seq to txt file
+			query = write_seq(query_dict, seq_id, "nucl", db2)
 			subprocess.run("tblastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
 
 		# make sure file is not empty
@@ -397,7 +431,7 @@ def rm_seqs_fasta(blast_dict, fasta_file):
 	blastp_spec = []
 	# get species from blastp
 	for result in blast_dict.keys():
-		spec_name = blast_dict[result][0].lower()
+		spec_name = blast_dict[result][0][0].lower()
 		if spec_name not in blastp_spec:
 			blastp_spec.append(spec_name)
 			
@@ -421,14 +455,21 @@ def rm_seqs_fasta(blast_dict, fasta_file):
 
 # write blast results and and their info to txt file
 def write_dict(blast_type, blast_dict):
-	with open(blast_type + "_RESULT_DATA.txt", "w") as file:
+	with open(blast_type + "_results_dict.txt", "w") as file:
 		for key, value in blast_dict.items():
 			file.write(f"{key}: {value}\n")
 			
 			
 # write summary for blastp and/or tblastn
 def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
-	with open(blast_type + "_SUMMARY.txt", "w") as file:
+	filename = ''
+	
+	if blast_type == "blastp" or blast_type == "blastx":
+		filename = "prot"
+	else:
+		filename = "nucl"
+		
+	with open(blast_type + "_summary_report.txt", "w") as file:
 		column_widths = [50, 30, 100]
 		
 		# write hearder
@@ -437,12 +478,13 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 		# keep track of species that has been seen
 		added_spec = {}
 		
-		# add all species adn their seq id in blast result into dict
+		# add all species adn their seq id in blast result into dict, add how mnay hits per id
 		for key, value in blast_dict.items():
-			if value[0] not in added_spec.keys():
-				added_spec[value[0]] = [key]
+			spec_name = value[0][0]
+			if spec_name not in added_spec.keys():
+				added_spec[spec_name] = [(key, len(value))]
 			else:
-				added_spec[value[0]].append(key)
+				added_spec[spec_name].append((key, len(value)))
 				
 		# check of species has either been found in protein blast round or does not have protein dataset
 		for spec in all_specs_list:
@@ -452,7 +494,7 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 				elif spec not in added_spec.keys():
 					added_spec[spec] = []
 			elif blast_type == "tblastn" or blast_type == "tblastx":
-				if len(special_case_list) > 0 and any(spec == info[0] for info in special_case_list) and spec not in added_spec.keys():
+				if len(special_case_list) > 0 and any(spec == info[0][0] for info in special_case_list) and spec not in added_spec.keys():
 					added_spec[spec] = 0
 				elif spec not in added_spec.keys():
 					added_spec[spec] = []
@@ -461,16 +503,18 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 		for key, value in added_spec.items():
 			species = key
 			count = None
+			
 			if blast_type == "blastp" or blast_type == "blastx":
 				count = "no protein dataset"
 			elif blast_type == "tblastn" or blast_type == "tblastx":
 				count = "blastp"
+				
 			hit_ids = "N/A"
 			
 			if value != 0:
 				count = str(len(value))
 				if len(value) != 0:
-					hit_ids = ', '.join(value)
+					hit_ids = ', '.join(f'{seq_id} ({num_hit})' for seq_id, num_hit in value)
 
 			file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
 	

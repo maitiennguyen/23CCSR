@@ -13,14 +13,22 @@ def main(argv):
 	tblastn_evalue = "1e-01" 
 	tblastx_evalue = "1e-01"
 	blastx_evalue = "1e-01"
-	taxIDS = ["147537"]
+	taxIDS = ["29834"]
 	download = "no"
 	q_type = "prot"
+	q_spec_name = "Saccharomyces cerevisiae"
 	
 	nucl_fasta_file = None 
 	prot_fasta_file = None 
 	all_specs = None
 	prot_specs = None
+	
+	
+	prot_db = None
+	nucl_db = None
+	prot_dict = None
+	nucl_dict = None
+	
 	
 	# if this is the first run and fasta files need to be downloaded	
 	if download == "yes":
@@ -28,7 +36,7 @@ def main(argv):
 		taxID_list = taxIDS
 
 		# get protein and nucleotide fasta files
-		print("Compiling nucl and aa datasets of targets into fasta files...")
+		print("\n\nCompiling nucl and aa datasets of targets into fasta files...\n\n")
 		nucl_fasta_file, prot_fasta_file, all_specs, prot_specs = get_fasta_files(taxID_list)
 		print("Done")
 
@@ -79,7 +87,7 @@ def main(argv):
 			# reverse blasto tp confirm results from 
 			if len(blastp_hit_dict) > 0:
 				print("\n\nPerforming reciprocal blastp...")
-				blastp_rev_list = recip_blast("blastp", blastp_hit_dict, subj_db, qseq_id)
+				blastp_rev_list = recip_blast("blastp", blastp_hit_dict, subj_db, qseq_id, prot_db)
 				print("Done")
 
 				# update blastp_hit_dict after validation
@@ -123,7 +131,7 @@ def main(argv):
 			# perform blastx on each tblastn result, keep valid results
 			if len(tblastn_hit_dict) > 0:
 				print("\n\nPerforming reciprocal blastx...")
-				blastx_rev_list = recip_blast("blastx", tblastn_hit_dict, subj_db, qseq_id)
+				blastx_rev_list = recip_blast("blastx", tblastn_hit_dict, subj_db, qseq_id, nucl_db)
 				print("Done")
 
 				# update tblastn_hit_dict after validation
@@ -138,7 +146,10 @@ def main(argv):
 				write_dict("blastx", tblastn_hit_dict)
 
 				# write summary txt file
-				write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)			
+				write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs)
+				
+		prot_dict = blastp_hit_dict
+		nucl_dict = tblastn_hit_dict
 	
 	
 	elif q_type == "nucl":
@@ -173,7 +184,7 @@ def main(argv):
 			# reverse blasto tp confirm results from 
 			if len(blastx_hit_dict) > 0:
 				print("\n\nPerforming reciprocal tblastn...")
-				tblastn_rev_list = recip_blast("tblastn", blastx_hit_dict, subj_db, qseq_id)
+				tblastn_rev_list = recip_blast("tblastn", blastx_hit_dict, subj_db, qseq_id, prot_db)
 				print("Done")
 
 				# update blastx_hit_dict after validation
@@ -216,7 +227,7 @@ def main(argv):
 			# perform blastx on each tblastn result, keep valid results
 			if len(tblastx_hit_dict) > 0:
 				print("\n\nPerforming reciprocal tblastx...")
-				tblastx_rev_list = recip_blast("tblastx", tblastx_hit_dict, subj_db, qseq_id)
+				tblastx_rev_list = recip_blast("tblastx", tblastx_hit_dict, subj_db, qseq_id, nucl_db)
 				print("Done")
 
 				# update tblastn_hit_dict after validation
@@ -233,12 +244,15 @@ def main(argv):
 				# write summary txt file
 				write_summary("tblastx", tblastx_hit_dict, blastx_hit_dict.values(), all_specs)
 				
+		prot_dict = blastx_hit_dict
+		nucl_dict = tblastx_hit_dict
+				
 	
 	# ANNOTATION
 	print("\n\nPerforming annotation on nucleotide sequences...")
 	
 	# make an annotation object
-	annotation = BlastAnnot(tblastn_hit_dict)
+	annotation = BlastAnnot(nucl_dict, q_spec_name)
 	# get the inital list of seqs with gap (>= 10 aa or multiple alignments), and no gap (anything else)
 	no_gap_dict, gap_dict = annotation.process_seqs()
 
@@ -259,7 +273,7 @@ def main(argv):
 	print("\n\nPerforming clustal analysis on nucleotide sequences...")
 	
 	# make a clustal object
-	clustal = Clustal(annotated_dict, tblastn_hit_dict)
+	clustal = Clustal(annotated_dict, prot_dict, prot_db)
 	
 	# get fasta file for all seqs fron aumotated annotation
 	clustal.get_seqs_fasta()
