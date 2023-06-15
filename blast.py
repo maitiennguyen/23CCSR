@@ -156,7 +156,7 @@ def get_dbs(fasta_file, seq_type):
 def write_seq(blast_dict, key, typ, db):
 	file_name = "recip_seq.txt"
 	seq = ''
-	
+	print(key)
 	# get seq to perform reciprocal blast
 	if typ == "prot":
 		db_info = subprocess.run("blastdbcmd -db {0} -entry {1}".format(db, key).split(), capture_output=True, text=True).stdout.split("\n")
@@ -193,7 +193,7 @@ def write_seq(blast_dict, key, typ, db):
 			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand plus -range {2}-{3}".format(db, key, start, end).split(), capture_output=True, text=True).stdout.split("\n")
 			
 		seq = ''.join(db_info[1:-1])
-	
+		print(len(seq))
 	# put key_val into fasta format (seq, id, description)
 	blast_seq = SeqIO.SeqRecord(Seq(seq), id=key, description=blast_dict[key][0][0])
 	

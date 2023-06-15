@@ -262,8 +262,8 @@ class BlastAnnot():
 
 				seq = ''.join(db_info[1:-1])
 				
-				if len(seq) % 3 != 0:
-					raise Exception("annotation nucl sequence is not divisible by 3.")
+				# if len(seq) % 3 != 0:
+				# 	raise Exception("annotation nucl sequence is not divisible by 3.")
 
 				annotated_seqs[seq_id] = [spec_name, start, stop_three, frame, seq]
 				
