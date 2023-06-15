@@ -494,7 +494,6 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list, i):
 				if spec not in added_spec.keys() and spec not in special_case_list:
 					added_spec[spec] = 0
 				elif spec not in added_spec.keys():
-					print("hello")
 					added_spec[spec] = []
 			elif blast_type == "tblastn" or blast_type == "tblastx":
 				if len(special_case_list) > 0 and any(spec == info[0][0] for info in special_case_list) and spec not in added_spec.keys():

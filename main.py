@@ -14,7 +14,7 @@ def main(argv):
 	tblastn_evalue = "1e-01" 
 	tblastx_evalue = "1e-01"
 	blastx_evalue = "1e-01"
-	taxIDS = ["1539666"]
+	taxIDS = ["34365"]
 	download = "no"
 	q_type = "prot"
 	q_spec_name = "Saccharomyces cerevisiae"
@@ -49,7 +49,7 @@ def main(argv):
 		write_list("prot_data_specs", prot_specs)
 		
 		# write dict that ssociates specs with prot files
-		write_dict("prot_files", prot_file_paths)
+		write_dict("prot_files", prot_file_paths, "all")
 
 	# if this is not the first run and/or user already have these 4 files
 	else:							   	
@@ -57,7 +57,7 @@ def main(argv):
 		prot_fasta_file = "prot.faa"
 		all_specs = read_list("all_specs.txt")
 		prot_specs = read_list("prot_data_specs.txt")
-		prot_file_paths = txt_to_dict("prot_files_dict.txt")
+		prot_file_paths = txt_to_dict("prot_files_all_dict.txt")
 
 	# the number of times to run queries
 	for i in range(n):
@@ -318,23 +318,40 @@ def main(argv):
 		# output file of nucleotide seqs that need manual annotation
 		man_anno_file = annotation.get_man_annot(gap_dict)
 		man_anno_files.append(man_anno_file)
-		
 	print("Done")
-	print(man_anno_files)
-	print(anno_dict_list)
 	
-# 	# CLUSTAL
-# 	print("\n\nPerforming clustal analysis on nucleotide sequences...")
+	# CLUSTAL
+	print("\n\nPerforming clustal analysis on nucleotide sequences...")
 	
-# 	# make a clustal object
-# 	clustal = Clustal(annotated_dict, prot_dict, prot_db)
+	# remove any dupe protein from multi queries
+	final_prot_dict = {}
+	final_annotated_dict = {}
 	
-# 	# get fasta file for all seqs fron aumotated annotation
-# 	clustal.get_seqs_fasta()
+	for query_spec in prot_dict.keys():
+		for seq_id in prot_dict[query_spec].keys():
+			if seq_id not in final_prot_dict.keys():
+				final_prot_dict[seq_id] = prot_dict[query_spec][seq_id]
+				
+	for query_spec in anno_dict_list.keys():
+		for seq_id in anno_dict_list[query_spec].keys():
+			if seq_id not in final_annotated_dict.keys():
+				final_annotated_dict[seq_id] = anno_dict_list[query_spec][seq_id]
+			else:
+				curr_len = len(anno_dict_list[query_spec][seq_id][4])
+				poss_len = len(final_annotated_dict[seq_id][4])
+				if poss_len > curr_len:
+					final_annotated_dict[seq_id] = anno_dict_list[query_spec][seq_id]
+				
 	
-# 	# run clustal with the result fasta file => output result file in clustal and fasta format
-# 	clustal.run_clustal()
-# 	print("Done")
+	# make a clustal object
+	clustal = Clustal(final_annotated_dict, final_prot_dict, prot_db)
+	
+	# get fasta file for all seqs fron aumotated annotation
+	clustal.get_seqs_fasta()
+	
+	# run clustal with the result fasta file => output result file in clustal and fasta format
+	clustal.run_clustal()
+	print("Done")
 	
 	
 
