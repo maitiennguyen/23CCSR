@@ -41,6 +41,10 @@ class Clustal():
 			
 			nucl_seq = Seq(self.nucl_dict[seq_id][4])
 			# translate nucl seq
+			if len(nucl_seq) % 3 != 0:
+				print(seq_id)
+				print(len(nucl_seq))
+				
 			t_nucl_seq = nucl_seq.translate(table=1, stop_symbol="")
 			
 			fasta_seq = SeqIO.SeqRecord(t_nucl_seq, id=seq_id, description=des)

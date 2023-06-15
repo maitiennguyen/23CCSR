@@ -156,7 +156,6 @@ def get_dbs(fasta_file, seq_type):
 def write_seq(blast_dict, key, typ, db):
 	file_name = "recip_seq.txt"
 	seq = ''
-	print(key)
 	# get seq to perform reciprocal blast
 	if typ == "prot":
 		db_info = subprocess.run("blastdbcmd -db {0} -entry {1}".format(db, key).split(), capture_output=True, text=True).stdout.split("\n")
@@ -166,34 +165,25 @@ def write_seq(blast_dict, key, typ, db):
 		starts = []
 		ends = []
 		frames = []
-		start = None
-		end = None
+		posits = []
 		db_info = None
 		
 		for info in blast_dict[key]:
-			starts.append(info[1])
-			ends.append(info[2])
-			frames.append(info[9])
-		
-		if all(int(frame) > 0 for frame in frames):
-			start = min(starts)
-			end = max(ends)
-			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand plus -range {2}-{3}".format(db, key, start, end).split(), capture_output=True, text=True).stdout.split("\n")
+			posits.append(int(info[1]))
+			posits.append(int(info[2]))
+			frames.append(int(info[9]))
 			
-		elif all(int(frame) < 0 for frame in frames):
-			start = max(starts)
-			end = min(ends)
-			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand minus -range {2}-{3}".format(db, key, end, start).split(), capture_output=True, text=True).stdout.split("\n")
+		start = min(posits)
+		end = max(posits)
+		
+		if all(int(frame) < 0 for frame in frames):
+			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand minus -range {2}-{3}".format(db, key, start, end).split(), capture_output=True, text=True).stdout.split("\n")
 			
 		else:
-			posits = starts + ends
-			posits = [int(p) for p in posits]
-			start = min(posits)
-			end = max(posits)
 			db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand plus -range {2}-{3}".format(db, key, start, end).split(), capture_output=True, text=True).stdout.split("\n")
 			
 		seq = ''.join(db_info[1:-1])
-		print(len(seq))
+
 	# put key_val into fasta format (seq, id, description)
 	blast_seq = SeqIO.SeqRecord(Seq(seq), id=key, description=blast_dict[key][0][0])
 	

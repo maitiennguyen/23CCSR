@@ -8,17 +8,17 @@ def main(argv):
 	
 	# BLAST
 	
-  seq_query = "skp1p_scereviseae.fasta"
+	seq_query = "skp1p_scereviseae.fasta"
 	ds_query = "scerevisiae.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
 	tblastx_evalue = "1e-01"
 	blastx_evalue = "1e-01"
-	taxIDS = ["34365"]
+	taxIDS = ["147537"]
 	download = "no"
 	q_type = "prot"
 	q_spec_name = "Saccharomyces cerevisiae"
-	n = 2
+	n = 1
 	
 	nucl_fasta_file = None 
 	prot_fasta_file = None 
