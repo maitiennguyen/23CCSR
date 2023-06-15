@@ -296,23 +296,32 @@ def main(argv):
 	# ANNOTATION
 	print("\n\nPerforming annotation on nucleotide sequences...")
 	
-	# make an annotation object
-	annotation = BlastAnnot(nucl_dict, q_spec_name)
-	# get the inital list of seqs with gap (>= 10 aa or multiple alignments), and no gap (anything else)
-	no_gap_dict, gap_dict = annotation.process_seqs()
-
-	# find 5' and 5' stop codons, find start codon starting from 5' direction
-	annotated_dict, no_start_seqs = annotation.annotate_no_gaps(no_gap_dict, nucl_db)
+	man_anno_files = []
+	anno_dict_list = {}
 	
-	write_dict("annotated", annotated_dict)
+	for q_spec_name in nucl_dict:
+		# make an annotation object
+		annotation = BlastAnnot(nucl_dict[q_spec_name], q_spec_name)
+		# get the inital list of seqs with gap (>= 10 aa or multiple alignments), and no gap (anything else)
+		no_gap_dict, gap_dict = annotation.process_seqs()
 
-	# update no_gap_dict and gap_dict if any sequence in no_gap_dict does not have a start codon
-	annotation.update_gap_dicts(no_start_seqs, no_gap_dict, gap_dict)
-	
-	# output file of nucleotide seqs that need manual annotation
-	annotation.get_man_annot(gap_dict)
+		# find 5' and 5' stop codons, find start codon starting from 5' direction
+		annotated_dict, no_start_seqs = annotation.annotate_no_gaps(no_gap_dict, nucl_db)
+		anno_dict_list[q_spec_name] = annotated_dict
+		
+		name = q_spec_name.replace(" ", "_")
+		write_dict("annotated", annotated_dict, name)
+
+		# update no_gap_dict and gap_dict if any sequence in no_gap_dict does not have a start codon
+		annotation.update_gap_dicts(no_start_seqs, no_gap_dict, gap_dict)
+
+		# output file of nucleotide seqs that need manual annotation
+		man_anno_file = annotation.get_man_annot(gap_dict)
+		man_anno_files.append(man_anno_file)
+		
 	print("Done")
-	
+	print(man_anno_files)
+	print(anno_dict_list)
 	
 # 	# CLUSTAL
 # 	print("\n\nPerforming clustal analysis on nucleotide sequences...")

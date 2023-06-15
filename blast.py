@@ -462,7 +462,7 @@ def rm_seqs_fasta(blast_dict, fasta_file):
 
 # write blast results and and their info to txt file
 def write_dict(blast_type, blast_dict, i):
-	with open(blast_type + i + "_dict.txt", "w") as file:
+	with open(blast_type + "_" + i + "_dict.txt", "w") as file:
 		for key, value in blast_dict.items():
 			file.write(f"{key}: {value}\n")
 			
@@ -470,7 +470,7 @@ def write_dict(blast_type, blast_dict, i):
 # write summary for blastp and/or tblastn
 def write_summary(blast_type, blast_dict, special_case_list, all_specs_list, i):
 		
-	with open(blast_type + i + "_summary_report.txt", "w") as file:
+	with open(blast_type + "_" + i + "_summary_report.txt", "w") as file:
 		column_widths = [50, 30, 100]
 		
 		# write hearder
