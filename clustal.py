@@ -88,15 +88,26 @@ class Clustal():
 	def run_clustal(self):
 		
 		if os.path.exists(self.rslt_filename) and os.stat(self.rslt_filename).st_size != 0:
+			
+			count = 0
+			with open(self.rslt_filename, "r") as file:
+				for record in SeqIO.parse(file, "fasta"):
+					count += 1
+					
+			if count > 1:
 		
-			out_name1 = "auto_algn.clustal"
-			out_name2 = "auto_algn.fasta"
+				out_name1 = "auto_algn.clustal"
+				out_name2 = "auto_algn.fasta"
 
-			subprocess.run("clustalo -i {0} -o {1} --outfmt=clustal --resno --threads=16 --force".format(self.rslt_filename, out_name1).split())
-			subprocess.run("clustalo -i {0} -o {1} --outfmt=fasta --resno --threads=16 --force".format(self.rslt_filename, out_name2).split())
+				subprocess.run("clustalo -i {0} -o {1} --outfmt=clustal --resno --threads=16 --force".format(self.rslt_filename, out_name1).split())
+				subprocess.run("clustalo -i {0} -o {1} --outfmt=fasta --resno --threads=16 --force".format(self.rslt_filename, out_name2).split())
 
-			self.add_spec_names(out_name1)
+				self.add_spec_names(out_name1)
+				
+			else:
+				print("Fasta file contains 1 sequence, nothing to align.")
+				
 			
 		else:
-			print("No sequences to feed into clustal")
+			print("No sequences to feed into clustal.")
 		

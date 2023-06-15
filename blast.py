@@ -34,13 +34,17 @@ def get_fasta_files(taxID_list):
 	nucl_file_paths = []
 
 	# store protein files path
-	prot_file_paths = []
+	prot_files = []
 	
 	# store all species names
 	all_specs = []
 	
 	# species w/ protein dataset
 	prot_specs = []
+	
+	# dict to associate species with their prot file path
+	prot_file_paths = {}
+	
 
 	# download genome and proteome and save fasta files
 	# for every tax ID 
@@ -110,10 +114,11 @@ def get_fasta_files(taxID_list):
 			if os.path.exists(nucl_file):
 				nucl_file_paths.append(nucl_file)
 			if os.path.exists(prot_file):
-				prot_file_paths.append(prot_file)
+				prot_files.append(prot_file)
 				for name in all_specs:
 					if name in acs_asm_tuple[2].replace("[", "").replace("]", ""):
 						prot_specs.append(name)
+						prot_file_paths[name] = prot_file
 				
 	if len(nucl_file_paths) > 0:
 		
@@ -125,18 +130,17 @@ def get_fasta_files(taxID_list):
 		nucl_fasta_file = "nucl.fna"
 
 	# make sure there are prot data
-	if len(prot_file_paths) > 0:
+	if len(prot_files) > 0:
 
 		# comebine all taxID protein databases into one single database
-		prot_dbs = ' '.join(prot_file_paths)                      
+		prot_dbs = ' '.join(prot_files)                      
 		subprocess.run("cat {0} >> prot.faa".format(prot_dbs), shell=True)
 
 		# assign file name
 		prot_fasta_file = "prot.faa"
 		
-
 	# return file names for nucl and prot fasta files
-	return nucl_fasta_file, prot_fasta_file, all_specs, prot_specs
+	return nucl_fasta_file, prot_fasta_file, all_specs, prot_specs, prot_file_paths
 
 
 # use fasta file to make blast database
@@ -457,22 +461,16 @@ def rm_seqs_fasta(blast_dict, fasta_file):
 
 
 # write blast results and and their info to txt file
-def write_dict(blast_type, blast_dict):
-	with open(blast_type + "_results_dict.txt", "w") as file:
+def write_dict(blast_type, blast_dict, i):
+	with open(blast_type + "_" + i + "_dict.txt", "w") as file:
 		for key, value in blast_dict.items():
 			file.write(f"{key}: {value}\n")
 			
 			
 # write summary for blastp and/or tblastn
-def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
-	filename = ''
-	
-	if blast_type == "blastp" or blast_type == "blastx":
-		filename = "prot"
-	else:
-		filename = "nucl"
+def write_summary(blast_type, blast_dict, special_case_list, all_specs_list, i):
 		
-	with open(blast_type + "_summary_report.txt", "w") as file:
+	with open(blast_type + "_" + i + "_summary_report.txt", "w") as file:
 		column_widths = [50, 30, 100]
 		
 		# write hearder
@@ -488,9 +486,10 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 				added_spec[spec_name] = [(key, len(value))]
 			else:
 				added_spec[spec_name].append((key, len(value)))
-				
+		
 		# check of species has either been found in protein blast round or does not have protein dataset
 		for spec in all_specs_list:
+
 			if blast_type == "blastp" or blast_type == "blastx":
 				if spec not in added_spec.keys() and spec not in special_case_list:
 					added_spec[spec] = 0
@@ -501,7 +500,7 @@ def write_summary(blast_type, blast_dict, special_case_list, all_specs_list):
 					added_spec[spec] = 0
 				elif spec not in added_spec.keys():
 					added_spec[spec] = []
-		
+
 		# fill in info to write to file
 		for key, value in added_spec.items():
 			species = key
@@ -534,4 +533,24 @@ def read_list(filename):
 		for line in file:
 			l.append(line.strip("\n"))
 	return l
+
+# read txt and return a dict
+def txt_to_dict(filename):
+	result_dict = {}
+
+	with open(filename, 'r') as file:
+		for line in file:
+			line = line.strip()
+			if line:
+				parts = line.split(': ')
+			
+				key = parts[0]
+				
+				s = "'" + parts[1] + "'"
+				values = eval(s)
+
+				result_dict[key] = values
+
+	return result_dict
+	
 

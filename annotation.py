@@ -282,8 +282,9 @@ class BlastAnnot():
 				
 	# table for manual annotation
 	def get_man_annot(self, gap_dict):
-
-		with open("man_anno_nucl_seqs.txt", "w") as file:
+		name = self.q_spec.replace(" ", "_")
+		filename = name + "_man_anno_seqs.txt"
+		with open(filename, "w") as file:
 			
 			file.write("Query_Species" + "\t" + 
 					   "Subject_ID" + "\t" + 
@@ -321,6 +322,6 @@ class BlastAnnot():
 						   ', '.join(sseq) + "\t" + 
 						   ', '.join([str(item) for item in sframe]) + "\n")
 			
-			
+		return filename
 		
 
