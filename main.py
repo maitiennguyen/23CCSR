@@ -318,6 +318,20 @@ def main(argv):
 		# output file of nucleotide seqs that need manual annotation
 		man_anno_file = annotation.get_man_annot(gap_dict)
 		man_anno_files.append(man_anno_file)
+		
+	outfile = "all_man_anno.txt"  # Specify the name of the output file
+	lines = []
+	
+	for manu_file in man_anno_files:
+		with open(manu_file, "r") as file:
+			ls = file.readlines()[1:]
+			lines.append(ls)
+
+	with open(outfile, "w") as outfile:
+		outfile.write("Query_Species\tSubject_ID\tSubject_Species\tE-Value\tSubject_Start\tSubject_End\tQuery_Start\tQuery_End\tQuery_Alignment\tSubject_Alignment\tReading_Frame\n")
+		for line in lines:
+			outfile.writelines(line)
+			
 	print("Done")
 	
 	# CLUSTAL
