@@ -106,7 +106,7 @@ class BlastAnnot():
 
 		for seq_id in self.seq_ids:
 			sig_gaps = self.query_sig_gaps(seq_id)
-			if sig_gaps is True or len(self.blast_dict[seq_id]) > 1:
+			if len(self.blast_dict[seq_id]) > 1:
 				gap_dict[seq_id] = self.blast_dict[seq_id]
 			else:
 				no_gap_dict[seq_id] = self.blast_dict[seq_id]
