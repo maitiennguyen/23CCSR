@@ -12,40 +12,13 @@ class CladesProcessor():
 		
 		self.specs = []
 		for seq_id in results_dict.keys():
-			spec = results_dict[seq_id][0]
+			spec = results_dict[seq_id][0][0]
 			if spec not in self.specs:
 				self.specs.append(spec)
 				
 		self.results_dict = results_dict
 		self.seq_ids = results_dict.keys()
 		self.db = db
-	
-		
-# 	# get tax id for each species	
-# 	def get_taxid(self, spec_name):
-# 		handle = Entrez.esearch(db="taxonomy", term=spec_name)
-# 		record = Entrez.read(handle)
-# 		handle.close()
-
-# 		if len(record["IdList"]) > 0:
-# 			spec_taxid = record["IdList"][0]
-# 			handle = Entrez.efetch(db="taxonomy", id=spec_taxid, retmode="xml")
-# 			record = Entrez.read(handle)
-# 			handle.close()
-# 			taxons = record[0]["LineageEx"]
-# 			family_id = None
-# 			family_name = None
-
-# 			for taxon in taxons:
-# 				if taxon["Rank"] == "family":
-# 					family_id = taxon["TaxId"]
-# 					family_name = taxon["ScientificName"]
-# 					break
-	
-# 			return family_id, family_name
-
-# 		else:
-# 			return None, None
 
 
 	# get tax id for each species	
@@ -87,19 +60,23 @@ class CladesProcessor():
 					query_clade.append(spec)
 				else:
 					other_clades.append(spec)
-		print(other_clades)		
+			
 		return query_clade, other_clades
 	
 	# pick random species in list
 	def get_rand_spec(self):
 		query_clade, other_clades = self.process_all_specs()
-		choice = random.choice(other_clades)
-		return choice
+		
+		if len(other_clades) == 0:
+			return None
+		else:
+			choice = random.choice(other_clades)
+			return choice
 	
 	# get seq id using species name
 	def get_id(self, spec_name):
-		for seq_id in self.seq_ids:
-			if spec_name == self.results_dict[seq_id][0]:
+		for seq_id in self.results_dict.keys():
+			if spec_name == self.results_dict[seq_id][0][0]:
 				return seq_id
 		return None
 	
@@ -111,23 +88,11 @@ class CladesProcessor():
 		
 		fasta_seq = SeqIO.SeqRecord(seq, id=seq_id, description=des)
 		
-		filename = seq_id + "_prot_query.fasta"
+		filename = seq_id + "_query.fasta"
 		with open(filename, "a") as fasta_file:
 				SeqIO.write(fasta_seq, fasta_file, "fasta")
 				
 		return filename
 		
-	# get first species not in same family as query species
-	def get_nonfam_species(self):
-		query_taxid, query_family_name = self.get_query_spec_taxid()
-		
-		for spec in self.specs:
-			if spec.split()[0] != self.query_spec.split()[0]:
-				taxid, family_name = self.get_taxid(spec)
-				if taxid != query_taxid:					
-					return spec
-			time.sleep(1/2)
-				
-		return None, None
 												  
 		
