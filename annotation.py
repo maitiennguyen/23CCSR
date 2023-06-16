@@ -221,7 +221,6 @@ class BlastAnnot():
 			# find start codon 
 			if stop_five is not None:
 				curr_start_posit = stop_five - 1
-				print(curr_start_posit)
 				while True:
 					if curr_start_posit <= stop_three:
 						break

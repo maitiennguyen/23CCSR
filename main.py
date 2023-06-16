@@ -14,11 +14,11 @@ def main(argv):
 	tblastn_evalue = "1e-01" 
 	tblastx_evalue = "1e-01"
 	blastx_evalue = "1e-01"
-	taxIDS = ["147537"]
+	taxIDS = ["410830"]
 	download = "no"
 	q_type = "prot"
 	q_spec_name = "Saccharomyces cerevisiae"
-	n = 1
+	
 	
 	nucl_fasta_file = None 
 	prot_fasta_file = None 
@@ -26,10 +26,12 @@ def main(argv):
 	prot_specs = None
 	prot_file_paths = None
 	
+	
 	prot_db = None
 	nucl_db = None
 	prot_dict = {}
 	nucl_dict = {}
+	i = 1
 	
 	
 	# if this is the first run and fasta files need to be downloaded	
@@ -60,7 +62,7 @@ def main(argv):
 		prot_file_paths = txt_to_dict("prot_files_all_dict.txt")
 
 	# the number of times to run queries
-	for i in range(n):
+	while True:
 		
 		if q_type == "prot":
 
@@ -90,7 +92,7 @@ def main(argv):
 				print("Done")
 
 				# write blast results to txt file
-				write_dict("blastp1", blastp_hit_dict, str(i+1))
+				write_dict("blastp1", blastp_hit_dict, str(i))
 
 				# reverse blasto tp confirm results from 
 				if len(blastp_hit_dict) > 0:
@@ -107,10 +109,10 @@ def main(argv):
 						update_blast_dict(blastp_hit_dict, blastp_rev_list)
 
 					# write updated blast results to txt file
-					write_dict("blastp2", blastp_hit_dict, str(i+1))
+					write_dict("blastp2", blastp_hit_dict, str(i))
 
 					# write summary txt file
-					write_summary("blastp", blastp_hit_dict, prot_specs, all_specs, str(i+1))
+					write_summary("blastp", blastp_hit_dict, prot_specs, all_specs, str(i))
 
 					# check if there is a nucleotide fasta file
 					if nucl_fasta_file is not None:
@@ -134,7 +136,7 @@ def main(argv):
 				print("Done")
 
 				# write blast results to txt file
-				write_dict("tblastn", tblastn_hit_dict, str(i+1))
+				write_dict("tblastn", tblastn_hit_dict, str(i))
 
 				# perform blastx on each tblastn result, keep valid results
 				if len(tblastn_hit_dict) > 0:
@@ -151,15 +153,52 @@ def main(argv):
 						update_blast_dict(tblastn_hit_dict, blastx_rev_list)
 
 					# write blast results to txt file
-					write_dict("blastx", tblastn_hit_dict, str(i+1))
+					write_dict("blastx", tblastn_hit_dict, str(i))
 
 					# write summary txt file
-					write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs, str(i+1))
-
+					write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs, str(i))
+					
+			# see if there are any new results
+			prot_ids = []
+			for spec in prot_dict.keys():
+				for seq_id in prot_dict[spec].keys():
+					if seq_id not in prot_ids:
+						prot_ids.append(seq_id)
+					
+			nucl_seqs = {}
+			for spec in nucl_dict.keys():
+				for scaff in nucl_dict[spec].keys():
+					if scaff not in nucl_seqs.keys():
+						nucl_seqs[scaff] = []
+					for value in nucl_dict[spec][scaff]:
+						nucl_seqs[scaff].append(value)
+					
+			curr_prot_rslts = set(blastp_hit_dict.keys())
+			all_prot_rslts = set(prot_ids)
+			
+			no_new_nucl = False
+			for seq in tblastn_hit_dict.keys():
+				if seq in nucl_seqs.keys():
+					for hit in tblastn_hit_dict[seq]:
+						for hit2 in nucl_seqs[seq]:
+							if hit2[1] < hit2[2]:
+								start = hit2[1]
+								end = hit2[2]
+							else:
+								start = hit2[2]
+								end = hit2[1]
+							if start <= hit[1] <= end or start <= hit[2] <= end:
+								no_new_nucl = True
+			
 			# add results from this query round to result dicts
 			prot_dict[q_spec_name] = blastp_hit_dict
 			nucl_dict[q_spec_name] = tblastn_hit_dict
-
+								
+			# end blast if no new results found					
+			if curr_prot_rslts.issubset(all_prot_rslts) and no_new_nucl:
+				print("\n\nNo new results were found with this run, moving onto annotation.")
+				break
+				
 
 		elif q_type == "nucl":
 
@@ -188,7 +227,7 @@ def main(argv):
 				print("Done")
 
 				# write blast results to txt file
-				write_dict("blastx", blastx_hit_dict,str(i+1))
+				write_dict("blastx", blastx_hit_dict,str(i))
 
 				# reverse blasto tp confirm results from 
 				if len(blastx_hit_dict) > 0:
@@ -205,10 +244,10 @@ def main(argv):
 						update_blast_dict(blastx_hit_dict, tblastn_rev_list)
 
 					# write updated blast results to txt file
-					write_dict("tblastn", blastx_hit_dict, str(i+1))
+					write_dict("tblastn", blastx_hit_dict, str(i))
 
 					# write summary txt file
-					write_summary("blastx", blastx_hit_dict, prot_specs, all_specs, str(i+1))
+					write_summary("blastx", blastx_hit_dict, prot_specs, all_specs, str(i))
 
 					# check if there is a nucleotide fasta file
 					if nucl_fasta_file is not None:
@@ -231,7 +270,7 @@ def main(argv):
 				print("Done")
 
 				# write blast results to txt file
-				write_dict("tblastx1", tblastx_hit_dict, str(i+1))
+				write_dict("tblastx1", tblastx_hit_dict, str(i))
 
 				# perform blastx on each tblastn result, keep valid results
 				if len(tblastx_hit_dict) > 0:
@@ -248,49 +287,88 @@ def main(argv):
 						update_blast_dict(tblastx_hit_dict, tblastx_rev_list)
 
 					# write blast results to txt file
-					write_dict("tblastx2", tblastx_hit_dict, str(i+1))
+					write_dict("tblastx2", tblastx_hit_dict, str(i))
 
 					# write summary txt file
-					write_summary("tblastx", tblastx_hit_dict, blastx_hit_dict.values(), all_specs, str(i+1))
-		
+					write_summary("tblastx", tblastx_hit_dict, blastx_hit_dict.values(), all_specs, str(i))
+					
+			# see if there are any new results
+			prot_ids = []
+			for spec in prot_dict.keys():
+				for seq_id in prot_dict[spec].keys():
+					if seq_id not in prot_ids:
+						prot_ids.append(seq_id)
+					
+			nucl_seqs = {}
+			for spec in nucl_dict.keys():
+				for scaff in nucl_dict[spec].keys():
+					if scaff not in nucl_seqs.keys():
+						nucl_seqs[scaff] = []
+					for value in nucl_dict[spec][scaff]:
+						nucl_seqs[scaff].append(value)
+					
+			curr_prot_rslts = set(blastx_hit_dict.keys())
+			all_prot_rslts = set(prot_ids)
+			
+			no_new_nucl = False
+			for seq in tblastx_hit_dict.keys():
+				if seq in nucl_seqs.keys():
+					for hit in tblastx_hit_dict[seq]:
+						for hit2 in nucl_seqs[seq]:
+							start = None
+							end = None
+							if hit2[1] < hit2[2]:
+								start = hit2[1]
+								end = hit2[2]
+							else:
+								start = hit2[2]
+								end = hit2[1]
+							if start <= hit[1] <= end or start <= hit[2] <= end:
+								no_new_nucl = True
+			
 			# add results from this query round to result dicts
 			prot_dict[q_spec_name] = blastx_hit_dict
 			nucl_dict[q_spec_name] = tblastx_hit_dict
+			
+			# end blast if no new results found
+			if curr_prot_rslts.issubset(all_prot_rslts) and no_new_nucl:
+				print("\n\nNo new results were found with this run, moving onto annotation.")
+				break
 		
 		# select next species w/ protein dataset to automate query
-		if n - i > 1:
-			# make sure there are species to select
-			if len(prot_dict.keys()) == 0:
-				print("\n\nNo species with protein dataset to select from.\n\n")
-				break
-			
-			processor = CladesProcessor(q_spec_name, prot_dict[list(prot_dict.keys())[-1]], prot_db)
-			
-			# select a random species in a different family
-			next_spec_name = processor.get_rand_spec()
-			
-			# make sure there is a next species
-			if next_spec_name is None:
-				print("\n\nNo species in other family ranks to select from.\n\n")
-				break
-			
-			# get next species prot id
-			next_id = processor.get_id(next_spec_name)
-			
-			# get fasta file of the next query protein
-			next_id_fasta = processor.get_id_fasta(next_id)
-			
-			# get fasta file of the next query protein database
-			
-			# update current query files
-			seq_query = next_id_fasta
-			ds_query = prot_file_paths[next_spec_name]
-			
-			# update current species name
-			q_spec_name = next_spec_name
-			
-			# reassign nucl_db
-			nucl_fasta_file = "nucl.fna"
+		# make sure there are species to select
+		if len(prot_dict.keys()) == 0:
+			print("\n\nNo species in protein results to select from.\n\n")
+			break
+
+		processor = CladesProcessor(q_spec_name, prot_dict[list(prot_dict.keys())[-1]], prot_db)
+
+		# select a random species in a different family
+		next_spec_name = processor.get_rand_spec()
+
+		# make sure there is a next species
+		if next_spec_name is None:
+			print("\n\nNo species in other family ranks to select from.\n\n")
+			break
+
+		# get next species prot id
+		next_id = processor.get_id(next_spec_name)
+
+		# get fasta file of the next query protein
+		next_id_fasta = processor.get_id_fasta(next_id)
+
+		# update current query files
+		seq_query = next_id_fasta
+		ds_query = prot_file_paths[next_spec_name]
+
+		# update current species name
+		q_spec_name = next_spec_name
+
+		# reassign nucl_db
+		nucl_fasta_file = "nucl.fna"
+		
+		# increase # of run
+		i += 1
 			
 	
 	# ANNOTATION

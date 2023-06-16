@@ -89,7 +89,7 @@ class CladesProcessor():
 		fasta_seq = SeqIO.SeqRecord(seq, id=seq_id, description=des)
 		
 		filename = seq_id + "_query.fasta"
-		with open(filename, "a") as fasta_file:
+		with open(filename, "w") as fasta_file:
 				SeqIO.write(fasta_seq, fasta_file, "fasta")
 				
 		return filename
