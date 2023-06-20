@@ -36,17 +36,19 @@ class Clustal():
 		
 		# add nucl seqs to fasta file
 		for seq_id in self.nucl_dict.keys():
-			str_annotated_seqs = [str(item) for item in self.nucl_dict[seq_id][0:-1]]
-			des = '\t'.join(str_annotated_seqs)
-			
-			nucl_seq = Seq(self.nucl_dict[seq_id][4])
-			# translate nucl seq
-			t_nucl_seq = nucl_seq.translate(table=1, stop_symbol="")
-			
-			fasta_seq = SeqIO.SeqRecord(t_nucl_seq, id=seq_id, description=des)
+			for align_seq in self.nucl_dict[seq_id]:
+				str_annotated_seqs = [str(item) for item in align_seq[0:-1]]
+				des = '\t'.join(str_annotated_seqs)
 
-			with open(file_name, "a") as fasta_file:
-				SeqIO.write(fasta_seq, fasta_file, "fasta")
+				nucl_seq = Seq(align_seq[4])
+				
+				# translate nucl seq
+				t_nucl_seq = nucl_seq.translate(table=1, stop_symbol="")
+
+				fasta_seq = SeqIO.SeqRecord(t_nucl_seq, id=seq_id, description=des)
+
+				with open(file_name, "a") as fasta_file:
+					SeqIO.write(fasta_seq, fasta_file, "fasta")
 		
 		self.rslt_filename = file_name
 		

@@ -153,7 +153,7 @@ class BlastAnnot():
 			# find stop codon in 5' direction
 			while True:
 				if curr_fiv_posit - 4 < 0:
-					stop_five = abs(frame)
+					stop_five = curr_fiv_posit
 					break
 					
 				curr_fiv_posit -= 1
@@ -167,7 +167,7 @@ class BlastAnnot():
 					
 			# find start codon 
 			if stop_five is not None:
-				curr_start_posit = stop_five + 2
+				curr_start_posit = stop_five - 1
 				while True:
 					if curr_start_posit >= stop_three:
 						break
@@ -189,7 +189,7 @@ class BlastAnnot():
 			# find stop codon in 3' direction
 			while True:
 				if curr_thr_posit - 4 < 0:
-					stop_three = abs(frame)
+					stop_three = curr_thr_posit - 3
 					break
 				
 				# flip sequence back to 5'-3'
@@ -220,7 +220,7 @@ class BlastAnnot():
 				
 			# find start codon 
 			if stop_five is not None:
-				curr_start_posit = stop_five - 4
+				curr_start_posit = stop_five - 1
 				while True:
 					if curr_start_posit <= stop_three:
 						break
@@ -261,9 +261,6 @@ class BlastAnnot():
 					db_info = subprocess.run("blastdbcmd -db {0} -entry {1} -strand minus -range {2}-{3}".format(db, seq_id, stop_three, start).split(), capture_output=True, text=True).stdout.split("\n")		
 
 				seq = ''.join(db_info[1:-1])
-				
-				# if len(seq) % 3 != 0:
-				# 	raise Exception("annotation nucl sequence is not divisible by 3.")
 
 				annotated_seqs[seq_id] = [spec_name, start, stop_three, frame, seq]
 				

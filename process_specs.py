@@ -7,18 +7,17 @@ from ete3 import NCBITaxa
 
 class CladesProcessor():
 	
-	def __init__(self, q_spec_name, results_dict, db):
-		self.query_spec = q_spec_name
-		
+	def __init__(self, results_dict, db, prev_q_specs):	
 		self.specs = []
-		for seq_id in results_dict.keys():
-			spec = results_dict[seq_id][0][0]
-			if spec not in self.specs:
-				self.specs.append(spec)
+		for q_spec in results_dict.keys():
+			for seq_id in results_dict[q_spec]:
+				spec = results_dict[q_spec][seq_id][0][0]
+				if spec not in self.specs:
+					self.specs.append(spec)
 				
 		self.results_dict = results_dict
-		self.seq_ids = results_dict.keys()
 		self.db = db
+		self.prev_q_specs = prev_q_specs
 
 
 	# get tax id for each species	
@@ -44,28 +43,32 @@ class CladesProcessor():
 		return family_taxid
 	
 	
-	def get_query_spec_taxid(self):
-		return self.get_taxid(self.query_spec)
+	def get_query_spec_taxids(self):
+		prev_q_taxids = []
+		for spec in self.prev_q_specs:
+			spec_taxid = self.get_taxid(spec)
+			prev_q_taxids.append(spec_taxid)
+		return prev_q_taxids
 	
 	# sort species into clades
 	def process_all_specs(self):
-		query_taxid = self.get_query_spec_taxid()
-		query_clade = []
+		query_taxids = self.get_query_spec_taxids()
+		query_clades = []
 		other_clades = []
+		diff_genus_specs = [spec for spec in self.specs for q_spec in self.prev_q_specs if spec.split()[0] != q_spec.split()[0]]
 		
-		for spec in self.specs:
-			if spec.split()[0] != self.query_spec.split()[0]:
-				taxid = self.get_taxid(spec)
-				if taxid == query_taxid:
-					query_clade.append(spec)
-				else:
-					other_clades.append(spec)
-			
-		return query_clade, other_clades
+		for spec in diff_genus_specs:
+			taxid = self.get_taxid(spec)
+			if taxid in query_taxids:
+				query_clades.append(spec)
+			else:
+				other_clades.append(spec)
+		
+		return query_clades, other_clades
 	
 	# pick random species in list
 	def get_rand_spec(self):
-		query_clade, other_clades = self.process_all_specs()
+		query_clades, other_clades = self.process_all_specs()
 		
 		if len(other_clades) == 0:
 			return None
@@ -75,9 +78,10 @@ class CladesProcessor():
 	
 	# get seq id using species name
 	def get_id(self, spec_name):
-		for seq_id in self.results_dict.keys():
-			if spec_name == self.results_dict[seq_id][0][0]:
-				return seq_id
+		for q_spec in self.results_dict.keys():
+			for seq_id in self.results_dict[q_spec]:
+				if spec_name == self.results_dict[q_spec][seq_id][0][0]:
+					return seq_id
 		return None
 	
 	# get fasta file of a given seq id
@@ -89,7 +93,7 @@ class CladesProcessor():
 		fasta_seq = SeqIO.SeqRecord(seq, id=seq_id, description=des)
 		
 		filename = seq_id + "_query.fasta"
-		with open(filename, "a") as fasta_file:
+		with open(filename, "w") as fasta_file:
 				SeqIO.write(fasta_seq, fasta_file, "fasta")
 				
 		return filename
