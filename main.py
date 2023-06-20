@@ -1,4 +1,5 @@
 import sys
+import os
 from blast import *
 from annotation import *
 from clustal import *
@@ -8,13 +9,13 @@ def main(argv):
 	
 	# BLAST
 	
-	seq_query = "skp1p_scereviseae.fasta"
+	seq_query = "cep3p_scereviseae.fasta"
 	ds_query = "scerevisiae.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
 	tblastx_evalue = "1e-01"
 	blastx_evalue = "1e-01"
-	taxIDS = ["410830"]
+	taxIDS = ["na"]
 	download = "no"
 	q_type = "prot"
 	q_spec_name = "Saccharomyces cerevisiae"
@@ -32,7 +33,7 @@ def main(argv):
 	prot_dict = {}
 	nucl_dict = {}
 	i = 1
-	
+	q_specs_list = [q_spec_name]
 	
 	# if this is the first run and fasta files need to be downloaded	
 	if download == "yes":
@@ -63,6 +64,8 @@ def main(argv):
 
 	# the number of times to run queries
 	while True:
+		
+		print("\n\nRunning blast... Round: " + str(i) + ". Query species: " + q_spec_name)
 		
 		if q_type == "prot":
 
@@ -196,7 +199,7 @@ def main(argv):
 								
 			# end blast if no new results found					
 			if curr_prot_rslts.issubset(all_prot_rslts) and no_new_nucl:
-				print("\n\nNo new results were found with this run, moving onto annotation.")
+				print("\n\nNo new results were found in this round, moving onto annotation.")
 				break
 				
 
@@ -338,18 +341,21 @@ def main(argv):
 		# select next species w/ protein dataset to automate query
 		# make sure there are species to select
 		if len(prot_dict.keys()) == 0:
-			print("\n\nNo species in protein results to select from.\n\n")
+			print("\n\nNo species in protein results to select from, moving onto annotation.")
 			break
 
-		processor = CladesProcessor(q_spec_name, prot_dict[list(prot_dict.keys())[-1]], prot_db)
+		processor = CladesProcessor(prot_dict, prot_db, q_specs_list)
 
 		# select a random species in a different family
 		next_spec_name = processor.get_rand_spec()
 
 		# make sure there is a next species
 		if next_spec_name is None:
-			print("\n\nNo species in other family ranks to select from.\n\n")
+			print("\n\nNo species in other family ranks to select from, moving onto annotation.")
 			break
+			
+		# add next query species to list of query spcies
+		q_specs_list.append(next_spec_name)
 
 		# get next species prot id
 		next_id = processor.get_id(next_spec_name)
@@ -369,7 +375,88 @@ def main(argv):
 		
 		# increase # of run
 		i += 1
-			
+	
+	# write summary report of all l blast results into one file
+	final_report = {}
+	column_widths = [50, 30, 100, 100]
+	blast1 = ''
+	blast2 = ''
+	if q_type == "prot":
+		blast1 = "blastp_"
+		blast2 = "tblastn_"
+	elif q_type == "nucl":
+		blast1 = "blastx_"
+		blast2 = "tblastx_"
+		
+	for run in range(i):
+		fname1 = blast1 + str(run+1) + "_summary_report.txt"
+		fname2 = blast2 + str(run+1) + "_summary_report.txt"
+
+		if os.path.exists(fname1):
+			with open(fname1, 'r') as file:
+				for line_num, line in enumerate(file):
+					if line_num == 0:
+						continue
+					species = line[:column_widths[0]].strip()
+					
+					prot_hit_ids = line[column_widths[0]+column_widths[1]:].strip()
+					if prot_hit_ids == 'N/A':
+						prot_hit_ids = []
+					else:
+						prot_hit_ids = prot_hit_ids.split(', ')
+					prot_hit_ids = [prot_id.split()[0] for prot_id in prot_hit_ids]
+
+					if species not in final_report.keys():
+						final_report[species] = [prot_hit_ids, []]
+					else:
+						for prot_id in prot_hit_ids:
+							if prot_id not in final_report[species][0]:
+								final_report[species][0].append(prot_id)
+
+		if os.path.exists(fname2):
+			with open(fname2, 'r') as file:
+				for line_num, line in enumerate(file):
+					if line_num == 0:
+						continue
+					species = line[:column_widths[0]].strip()
+					  
+					nucl_hit_ids = line[column_widths[0]+column_widths[1]:].strip()
+					if nucl_hit_ids == 'N/A':
+						nucl_hit_ids = []
+					else:
+						nucl_hit_ids = nucl_hit_ids.split(', ')
+					nucl_hit_ids = [nucl_id.split()[0] for nucl_id in nucl_hit_ids]
+
+					if species not in final_report.keys():
+						final_report[species] = [[], nucl_hit_ids]
+					else:
+						for nucl_id in nucl_hit_ids:
+							if nucl_id not in final_report[species][1]:
+								final_report[species][1].append(nucl_id)
+
+		with open("complete_blast_summary_report.txt", 'w') as file:
+			file.write("{:<{}} {:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Protein Hit ID(s)", column_widths[2], "Nucleotide Hit ID(s)", column_widths[3]))
+
+			for key, value in final_report.items():
+				species = key
+				count = 0
+				prot_hits = value[0]
+				nucl_hits = value[1]
+				
+				if len(prot_hits) == 0:
+					prot_hits = 'N/A'
+				else:
+					count += len(prot_hits)
+					prot_hits = ', '.join(prot_hits)	
+					
+				if len(nucl_hits) == 0:
+					nucl_hits = 'N/A'
+				else:
+					count += len(nucl_hits)
+					nucl_hits = ', '.join(nucl_hits)	
+
+				file.write("{:<{}} {:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], prot_hits, column_widths[2], nucl_hits, column_widths[3]))
+
 	
 	# ANNOTATION
 	print("\n\nPerforming annotation on nucleotide sequences...")
@@ -397,7 +484,7 @@ def main(argv):
 		man_anno_file = annotation.get_man_annot(gap_dict)
 		man_anno_files.append(man_anno_file)
 		
-	outfile = "all_man_anno.txt"  # Specify the name of the output file
+	outfile = "all_man_anno.txt" 
 	lines = []
 	
 	for manu_file in man_anno_files:
@@ -409,31 +496,146 @@ def main(argv):
 		outfile.write("Query_Species\tSubject_ID\tSubject_Species\tE-Value\tSubject_Start\tSubject_End\tQuery_Start\tQuery_End\tQuery_Alignment\tSubject_Alignment\tReading_Frame\n")
 		for line in lines:
 			outfile.writelines(line)
-			
+	
+	# write ssummary report for all manual annotation seqs
+	filename = 'all_man_anno.txt' 
+	man_sum = "complete_manual_anno_summary.txt"
+
+	manual_report = {}
+
+	with open(filename, 'r') as file:
+		for line_num, line in enumerate(file):
+			if line_num == 0:
+				continue
+			line = line.strip()  
+			columns = line.split('\t') 
+			query_species = columns[0]
+			subject_id = columns[1]
+			subject_species = columns[2]
+			subject_start = columns[4].split(', ') if columns[4] else []  
+			subject_end = columns[5].split(', ') if columns[5] else []  
+			posits = subject_start + subject_end
+			posits = [int(posit) for posit in posits]
+			min_posit = min(posits)
+			max_posit = max(posits)
+
+			if subject_species not in manual_report.keys():
+				manual_report[subject_species] = [[subject_id], [min_posit], [max_posit], [query_species]]
+			else:
+				if subject_id not in manual_report[subject_species][0]:
+					manual_report[subject_species][0].append(subject_id)
+					manual_report[subject_species][1].append(min_posit)
+					manual_report[subject_species][2].append(max_posit)
+				else:
+					index =  manual_report[subject_species][0].index(subject_id)
+					new_min = min([manual_report[subject_species][1][index], min_posit])
+					new_max = max([manual_report[subject_species][2][index], max_posit])
+					manual_report[subject_species][1][index] = new_min
+					manual_report[subject_species][2][index] = new_max
+					
+				if query_species not in  manual_report[subject_species][3]:
+					manual_report[subject_species][3].append(query_species)
+
+	with open(man_sum, 'w') as file:
+		column_widths = [40, 100, 50, 50, 100]
+
+		file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Scaffold ID", column_widths[1], "Min Posit", column_widths[2], "Max Posit", column_widths[3], "Query Species", column_widths[4]))
+
+		for key, value in manual_report.items():
+			species = key
+			scaffold_id = ', '.join(value[0])
+			min_posit = ', '.join([str(p) for p in value[1]])
+			max_posit = ', '.join([str(p) for p in value[2]])
+			q_spec = ', '.join(value[3])
+
+			file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], scaffold_id, column_widths[1], min_posit, column_widths[2], max_posit, column_widths[3], q_spec, column_widths[4]))
 	print("Done")
 	
-	# CLUSTAL
-	print("\n\nPerforming clustal analysis on nucleotide sequences...")
 	
-	# remove any dupe protein from multi queries
+	# CLUSTAL
+	print("\n\nPerforming clustal analysis on annotated sequences...")
+	
+	# remove any dupe protein and scaffold sequences from multi queries
 	final_prot_dict = {}
 	final_annotated_dict = {}
+	nucl_to_add = {}
+	nucl_seq_q_spec = {}
 	
 	for query_spec in prot_dict.keys():
 		for seq_id in prot_dict[query_spec].keys():
 			if seq_id not in final_prot_dict.keys():
 				final_prot_dict[seq_id] = prot_dict[query_spec][seq_id]
-				
+						
 	for query_spec in anno_dict_list.keys():
 		for seq_id in anno_dict_list[query_spec].keys():
 			if seq_id not in final_annotated_dict.keys():
-				final_annotated_dict[seq_id] = anno_dict_list[query_spec][seq_id]
+				final_annotated_dict[seq_id] = [anno_dict_list[query_spec][seq_id]]
 			else:
-				curr_len = len(anno_dict_list[query_spec][seq_id][4])
-				poss_len = len(final_annotated_dict[seq_id][4])
-				if poss_len > curr_len:
-					final_annotated_dict[seq_id] = anno_dict_list[query_spec][seq_id]
-				
+				for index, value in enumerate(final_annotated_dict[seq_id]):
+					curr_start = value[1]
+					curr_end = value[2] 
+					poss_start = anno_dict_list[query_spec][seq_id][1]
+					poss_end = anno_dict_list[query_spec][seq_id][2]
+
+					# check if seq overlaps with curr seq in final dict, if yes, get the longer one
+					if curr_start <= poss_start <= curr_end or curr_start <= poss_end <= curr_end or curr_start >= poss_start >= curr_end or curr_start >= poss_end >= curr_end:
+						curr_len = len(value[4])
+						poss_len = len(anno_dict_list[query_spec][seq_id][4]) 
+						if poss_len > curr_len:
+							final_annotated_dict[seq_id][index] = anno_dict_list[query_spec][seq_id]
+
+					# if they don't overlap, add it as another seq to clustal
+					else:
+						if seq_id not in nucl_to_add.keys():
+							nucl_to_add[seq_id] = [anno_dict_list[query_spec][seq_id]]
+						else:
+							if anno_dict_list[query_spec][seq_id] not in nucl_to_add[seq_id]:
+								nucl_to_add[seq_id].append(anno_dict_list[query_spec][seq_id])
+								
+			if seq_id not in nucl_seq_q_spec.keys():
+				nucl_seq_q_spec[seq_id] = [query_spec]
+			else:
+				if query_spec not in nucl_seq_q_spec[seq_id]:
+					nucl_seq_q_spec[seq_id].append(query_spec)
+
+								
+	for seq_id in nucl_to_add.keys():
+		for alignment in nucl_to_add[seq_id]:
+			final_annotated_dict[seq_id].append(alignment)
+			
+	# write summary report for annotated nucl seqs
+	auto_sum = "complete_auto_anno_summary.txt"
+	auto_report = {}
+
+	for key, value in final_annotated_dict.items():
+		scaffold_id = key
+		for hit in value:
+			species = hit[0]
+			start = hit[1]
+			end = hit[2]
+			
+			if species not in auto_report.keys():
+				auto_report[species] = [[scaffold_id], [start], [end], nucl_seq_q_spec[scaffold_id]]
+			else:
+				auto_report[species][0].append(scaffold_id)
+				auto_report[species][1].append(start)
+				auto_report[species][2].append(end)
+				for spec in nucl_seq_q_spec[scaffold_id]:
+					if spec not in auto_report[species][3]:
+						auto_report[species][3].append(spec)       
+	with open(auto_sum, 'w') as file:
+		column_widths = [40, 100, 50, 50, 100]
+
+		file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Scaffold ID", column_widths[1], "Start Posit", column_widths[2], "End Posit", column_widths[3], "Query Species", column_widths[4]))
+
+		for key, value in auto_report.items():
+			species = key
+			scaffold_id = ', '.join(value[0])
+			min_posit = ', '.join([str(p) for p in value[1]])
+			max_posit = ', '.join([str(p) for p in value[2]])
+			q_spec = ', '.join(value[3])
+
+			file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], scaffold_id, column_widths[1], min_posit, column_widths[2], max_posit, column_widths[3], q_spec, column_widths[4]))      
 	
 	# make a clustal object
 	clustal = Clustal(final_annotated_dict, final_prot_dict, prot_db)
