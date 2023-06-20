@@ -55,9 +55,8 @@ class CladesProcessor():
 		query_taxids = self.get_query_spec_taxids()
 		query_clades = []
 		other_clades = []
-		diff_genus_specs = [spec for spec in self.specs for q_spec in self.prev_q_specs if spec.split()[0] != q_spec.split()[0]]
 		
-		for spec in diff_genus_specs:
+		for spec in self.specs:
 			taxid = self.get_taxid(spec)
 			if taxid in query_taxids:
 				query_clades.append(spec)

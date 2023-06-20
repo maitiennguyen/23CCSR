@@ -9,7 +9,7 @@ def main(argv):
 	
 	# BLAST
 	
-	seq_query = "cep3p_scereviseae.fasta"
+	seq_query = "ndc10_scereviseae.fasta"
 	ds_query = "scerevisiae.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
@@ -376,7 +376,7 @@ def main(argv):
 		# increase # of run
 		i += 1
 	
-	# write summary report of all l blast results into one file
+	# write summary report of all blast results into one file
 	final_report = {}
 	column_widths = [50, 30, 100, 100]
 	blast1 = ''
