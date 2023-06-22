@@ -18,7 +18,11 @@ def get_qseq_id(seq, db, typ):
 		subprocess.run("blastn -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(seq, db, "qseq_id.blasted", "6").split())
 	
 	with open("qseq_id.blasted", "r") as blastp_rslt:
-		qseq_id = blastp_rslt.readline().split("\t")[1]
+		try:
+			qseq_id = blastp_rslt.readline().split("\t")[1]
+		except IndexError:
+			print("\nERROR: Query sequence file and/or Query nucl/prot dataset file not in valid format. See README.md to troubleshoot.\n")
+			sys.exit()
 		
 	return qseq_id	
 
@@ -70,8 +74,12 @@ def get_fasta_files(taxID_list):
 										.split("\n")
 		
 		# remove unecessary info (headers and '') from list
-		acs_asm_list_temp.pop(0)
-		acs_asm_list_temp.pop(-1)
+		try:
+			acs_asm_list_temp.pop(0)
+			acs_asm_list_temp.pop(-1)
+		except IndexError:
+			print("\nERROR: Invalid search set. No search set data downloaded.\n")
+			sys.exit()
 
 		# parse into list => [assemble accession num, assembly name, species name] 
 		acs_asm_list = []
