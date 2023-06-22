@@ -4,22 +4,43 @@ from blast import *
 from annotation import *
 from clustal import *
 from process_specs import *
+from user_input import *
 
 def main(argv):
 	
+	# process terminal arguments
+	input_processor = InputProcessor(argv)
+	input_processor.check_invalid_flag()
+	
+	# get required parameters
+	seq_query = input_processor.get_qseq()
+	ds_query = input_processor.get_qdb()
+	q_spec_name = input_processor.get_qname()
+	print(q_spec_name)
+	q_type = input_processor.get_qtype()
+	taxIDS = input_processor.get_sset()
+	download = input_processor.get_download()
+	
+	# get optional parameters
+	blastp_evalue = input_processor.get_evalue()
+	tblastn_evalue = input_processor.get_evalue()
+	tblastx_evalue = input_processor.get_evalue()
+	blastx_evalue = input_processor.get_evalue()
+	
+	# check if provided parameter files exist
+	if os.path.exists(seq_query):
+		pass
+	else:
+		print("\nERROR: Query sequence file not found in directory.\n")
+		sys.exit()
+	if os.path.exists(ds_query):
+		pass
+	else:
+		print("\nERROR: Query nucl/prot dataset file not found in directory.\n")
+		sys.exit()
+	
+	
 	# BLAST
-	
-	seq_query = "cnn1_scerevisiae.fasta"
-	ds_query = "scerevisiae.faa"
-	blastp_evalue = "1e-01"  
-	tblastn_evalue = "1e-01" 
-	tblastx_evalue = "1e-01"
-	blastx_evalue = "1e-01"
-	taxIDS = ["na"]
-	download = "no"
-	q_type = "prot"
-	q_spec_name = "Saccharomyces cerevisiae"
-	
 	
 	nucl_fasta_file = None 
 	prot_fasta_file = None 
@@ -55,12 +76,16 @@ def main(argv):
 		write_dict("prot_files", prot_file_paths, "all")
 
 	# if this is not the first run and/or user already have these 4 files
-	else:							   	
-		nucl_fasta_file = "nucl.fna"
-		prot_fasta_file = "prot.faa"
-		all_specs = read_list("all_specs.txt")
-		prot_specs = read_list("prot_data_specs.txt")
-		prot_file_paths = txt_to_dict("prot_files_all_dict.txt")
+	else:
+		try:
+			nucl_fasta_file = "nucl.fna"
+			prot_fasta_file = "prot.faa"
+			all_specs = read_list("all_specs.txt")
+			prot_specs = read_list("prot_data_specs.txt")
+			prot_file_paths = txt_to_dict("prot_files_all_dict.txt")
+		except FileNotFoundError:
+			print("\nERROR: Required search set dababase and/or files not found in directory. See README.md to troubleshoot\n")
+			sys.exit()
 
 	# the number of times to run queries
 	while True:
