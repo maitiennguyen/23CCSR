@@ -19,4 +19,4 @@
   - fasta file of all sequences for clustal analysis - one fasta file
 
 ## Installation
-To download the zip file, click [here](https://github.com/maitiennguyen/23CCSR/blob/0231502f4b015b7701b390842b9f30290816b4a4/23CCSR.zip).
+To download the zip file, click [here](http://github.com/maitiennguyen/23CCSR/zipball/master/).
