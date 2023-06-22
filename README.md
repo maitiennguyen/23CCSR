@@ -7,11 +7,16 @@ By providing an amino acid or nucleotide query sequence along with a search set,
 
 
 ## Table of Contents
+- [Workflow](#workflow)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Examples](#examples)
 - [File Documentation](#filedoc)
-  
+- [Troubleshooting](#troubleshoot)
+
+
+## Workflow
+<a name="workflow"></a>
 
 ## Installation
 <a name="installation"></a>
@@ -74,7 +79,7 @@ Specifies the E-value threshold for the blast and reciprocal blast searches. If 
 ```
 run_clustal.py <fasta_file>
 ```
-This command can be used to perform Clustal analysis of a sequences in FASTA format individually.
+This command can be used to perform Clustal analysis of sequences in FASTA format individually.
 
 
 ## Examples
@@ -90,6 +95,7 @@ python main.py -qseq sir2_gene.fna -qdb scereviseae.fna -qname Saccharomyces,cer
 ```
 python run_clustal.py manual_anno_seqs.fasta
 ```
+
 
 ## File Documentation
 <a name="filedoc"></a>
@@ -108,4 +114,9 @@ python run_clustal.py manual_anno_seqs.fasta
 
 - run_clustal.py: This script is an add-on tool and can be used if manual Clustal analysis is required.
 
+### Output Files
+
+
+## Troubleshooting
+<a name="troubleshoot"></a>
 
