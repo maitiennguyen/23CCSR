@@ -9,7 +9,7 @@ def main(argv):
 	
 	# BLAST
 	
-	seq_query = "ndc10_scereviseae.fasta"
+	seq_query = "cnn1_scerevisiae.fasta"
 	ds_query = "scerevisiae.faa"
 	blastp_evalue = "1e-01"  
 	tblastn_evalue = "1e-01" 
