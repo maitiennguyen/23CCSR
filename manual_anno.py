@@ -1,9 +1,10 @@
 import subprocess
 import sys
 import os
-parent_directory_path = os.path.dirname(os.getcwd())
-sys.path.append(parent_directory_path)
 from blast import *
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 # convert all_man_anno.txt into dictionary of dictionaries, outer key = query sepcies, inner key = scaffld id, inner value = species name, s_starts, s_stops, reading frame, sequence
 man_anno_file = "all_man_anno.txt"
@@ -47,6 +48,7 @@ class MultiAlignAnno():
 		self.to_remove = {}
 		self.to_further_anno = {}
 		self.to_keep = {}
+		self.to_combine = {}
 		
 		
 	def add_to_remove(self, q_spec, s_id):
@@ -121,10 +123,46 @@ class MultiAlignAnno():
 					qseq_id = rslt[0]
 					sseq_id = rslt[1]
 
-					# check if the first result is id_of_interest
 					if sseq_id == self.q_prot_ids[q_spec]:
 						valid_hits.append(i)
 		return valid_hits
+	
+	
+	def is_blastp_valid(self, s_id, nucl_seq, q_spec, q_prot_db):
+		
+		transl_seq = Seq(nucl_seq).translate(table=1, stop_symbol="")
+		
+		blast_seq = SeqIO.SeqRecord(transl_seq, id=s_id, description=self.man_anno_dict[q_spec][s_id][0])
+		
+		query = "man_recip_q.fasta"
+		blast_file_name = "man_recip_blastx.blasted"
+		
+		with open(query, "w") as fasta_file:
+			SeqIO.write(blast_seq, fasta_file, "fasta")
+
+		subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, q_prot_db, blast_file_name, "6").split())
+		
+		if os.stat(blast_file_name).st_size != 0:
+			with open(blast_file_name, "r") as blastp_rslt:
+				rslt = blastp_rslt.readline().strip('\n').split("\t")
+				qseq_id = rslt[0]
+				sseq_id = rslt[1]
+				
+				count = 0
+				
+				if sseq_id == self.q_prot_ids[q_spec]:
+					for line in blastp_rslt:
+						rslt = line.strip('\n').split("\t")
+						qseq_id = rslt[0]
+						sseq_id = rslt[1]
+						if sseq_id == self.q_prot_ids[q_spec]:
+							count += 1
+							
+		if count == 0:
+			return True
+									
+		else:
+			return False
 	
 	
 	def process_longer(self, s_id, q_spec, q_prot_db):
@@ -159,6 +197,89 @@ class MultiAlignAnno():
 			self.add_to_keep(q_spec, s_id, valid_hits[0])
 			
 			
+	def process_no_overlaps(self, s_id, q_spec, q_prot_db):
+		frames = self.man_anno_dict[q_spec][s_id][3]
+		starts = self.man_anno_dict[q_spec][s_id][1]
+		stops = self.man_anno_dict[q_spec][s_id][2]
+		
+		seq1 = ''
+		seq2 = ''
+		seq1_start = None
+		seq1_end = None
+		seq2_start = None
+		seq2_end = None
+		
+		combined_seq = ''
+		
+		if all(num > 0 for num in frames):
+			if starts[0] < starts[1]:
+				seq1_start, seq2_start = starts[0], starts[1]
+				seq1_end, seq2_end = stops[0], stops[1]
+			else:
+				seq1_start, seq2_start = starts[1], starts[0]
+				seq1_end, seq2_end = stops[1], stops[0]
+				
+			seq1 = self.get_nucl_seq(s_id, "plus", seq1_start, seq1_end)
+			seq2 = self.get_nucl_seq(s_id, "plus", seq2_start, seq2_end)
+		
+		elif all(num < 0 for num in frames):
+			if starts[0] > starts[1]:
+				seq1_start, seq2_start = starts[0], starts[1]
+				seq1_end, seq2_end = stops[0], stops[1]
+			else:
+				seq1_start, seq2_start = starts[1], starts[0]
+				seq1_end, seq2_end = stops[1], stops[0]			
+				
+			seq1 = self.get_nucl_seq(s_id, "minus", seq1_end, seq1_start)
+			seq2 = self.get_nucl_seq(s_id, "minus", seq2_end, seq2_start)
+		
+		start_substr = "GT"
+		stop_substr = "AG"
+		
+		new_seq1 = ''
+		new_seq2 = ''
+		intron_start = None
+		intron_stop = None
+		
+		while True:
+			intron_start = seq1.rfind(start_substr)
+			intron_stop = seq2.find(stop_substr) + 1
+			
+			if intron_start == -1 and intron_stop == -1:
+				break
+			
+			if intron_start != -1:
+				new_seq1 = seq1[:intron_start]
+				
+			if intron_stop != -1:
+				new_seq2 = seq2[intron_stop + 1:]
+
+			combined_seq = new_seq1 + new_seq2
+			
+			if len(combined_seq) % 3 == 0 and self.is_blastp_valid(s_id, combined_seq, q_spec, q_prot_db):
+				break
+				
+			seq1 = new_seq1
+			seq2 = new_seq2
+			
+		if intron_start != -1 and intron_stop != -1:
+			combined_start = seq1_start
+			combined_stop = seq2_end
+			intron_start = seq1_start - intron_start
+			intron_stop = seq2_start - intron_stop - 1
+			transl_seq = Seq(combined_seq).translate(table=1, stop_symbol="")
+
+			align_info = [self.man_anno_dict[q_spec][s_id][0], combined_start, combined_stop, intron_start, intron_stop, transl_seq]
+			
+			if q_spec not in self.to_combine.keys():
+				 self.to_combine[q_spec] = {s_id: align_info}
+			else: 
+				self.to_combine[q_spec][s_id] = align_info
+			
+		else:
+			raise Exception("no valid combination.")
+			
+						
 	def process_all_seqs(self):
 		further_anno = {}
 		auto_anno = {}
@@ -170,8 +291,6 @@ class MultiAlignAnno():
 						further_anno[q_spec] = {s_id : self.man_anno_dict[q_spec][s_id]}
 					else:
 						further_anno[q_spec][s_id] = self.man_anno_dict[q_spec][s_id]
-		else:
-			print("No scaffolds require further annotation.")
 		
 		if len(self.to_keep.keys()) > 0:
 			for q_spec, hit_dict in self.man_anno_dict.items():
@@ -188,8 +307,6 @@ class MultiAlignAnno():
 							auto_anno[q_spec] = {s_id : [name, s_start, s_stop, frame, q_start, q_stop]}
 						else:
 							auto_anno[q_spec][s_id] = [name, s_start, s_stop, frame, q_start, q_stop]
-		else:
-			print("All scaffolds require further annotation.")
 			
 		if len(self.to_remove.keys()) > 1:
 			print("All alignments of the following scaffolds failed reciprocal blast:")
@@ -198,7 +315,7 @@ class MultiAlignAnno():
 					print(s_id)
 					
 
-		return further_anno, auto_anno
+		return further_anno, auto_anno, self.to_combine
 	
 		
 
@@ -232,7 +349,7 @@ for q_spec, hit_dict in annotator.man_anno_dict.items():
 			
 			# overlap in subject sequence alignments (different parts of query, overlap subject parts)
 			elif annotator.alignments_overlap(s_starts, s_stops) or annotator.alignments_overlap(s_stops, s_starts):
-				annotator.process_longer(s_id, q_spec, q_prot_db)		
+				annotator.process_longer(s_id, q_spec, q_prot_db)
 			
 			# overlap in query sequence alignments (different parts of subject, overlap query parts)
 			elif annotator.alignments_overlap(q_starts, q_stops) or annotator.alignments_overlap(q_stops, q_starts):
@@ -240,15 +357,21 @@ for q_spec, hit_dict in annotator.man_anno_dict.items():
 				
 			# no overlap in query and subject alignments
 			else:
-				pass
+				annotator.process_no_overlaps(s_id, q_spec, q_prot_db)
 			
 		
 		# mix of positive and minus frames
 		else:
 			annotator.process_longer(s_id, q_spec, q_prot_db)
+			
 		
-further_anno, auto_anno = annotator.process_all_seqs()
+further_anno, auto_anno, combined = annotator.process_all_seqs()
+print("need further manual annotation")
 for spec in further_anno.keys():
-	print(len(further_anno[spec].keys()))
+	print(spec + ": " + str(len(further_anno[spec].keys())))
+print("selected the longer sequence")
 for spec in auto_anno.keys():
-	print(len(auto_anno[spec].keys()))
+	print(spec + ": " + str(len(auto_anno[spec].keys())))
+print("combined")
+for spec in combined.keys():
+	print(spec + ": " + str(len(combined[spec].keys())))
