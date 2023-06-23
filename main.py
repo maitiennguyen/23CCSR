@@ -16,7 +16,6 @@ def main(argv):
 	seq_query = input_processor.get_qseq()
 	ds_query = input_processor.get_qdb()
 	q_spec_name = input_processor.get_qname()
-	print(q_spec_name)
 	q_type = input_processor.get_qtype()
 	taxIDS = input_processor.get_sset()
 	download = input_processor.get_download()
