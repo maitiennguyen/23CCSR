@@ -46,12 +46,12 @@ Before running the script, make sure you have Python on your computer and the fo
 ```
 -qseq <query_sequence_file>
   ```
-Specifies the file containing the query sequence in FASTA format, can be sequence of nucleotides or amino acids. 
+Specifies the file containing the query sequence in FASTA format, can be sequence of nucleotides or amino acids. If file is not in the working directory, path of the file is required.
 
 ```
 -qdb <query_species_dataset_file>
 ```
-Specifies the genome or protein dataset file of the query species in FASTA format. If query is an amino acid sequence, this must be a protein dataset. If query is a nucleotide sequence, this must be a genome dataset
+Specifies the genome or protein dataset file of the query species in FASTA format. If query is an amino acid sequence, this must be a protein dataset. If query is a nucleotide sequence, this must be a genome dataset. If file is not in the working directory, path of the file is required.
 
 ```
 -qname <query_species_name>
@@ -167,7 +167,7 @@ After running the tool, the following output files will be generated:
 
 These output files provide valuable information and results from the tool's data mining and analysis workflow, any files not mentioned are miscellaneous and can be discarded.
 
-### Required Files for Re-using search set
+### Required Files for Re-using Search Set
 
 If you want to re-run the script and the search set remains the same as the previous run (when the argument for -download is 'no'), then the following files are required to be in the working directory for the script to run:
 
