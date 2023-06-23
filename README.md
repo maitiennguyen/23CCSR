@@ -117,7 +117,7 @@ The script for the tool consists of the following files:
 
 - `clustal.py`: This contains methods to perform Clustal analysis. It facilitates multiple sequence alignment, allowing for the creation of biologically meaningful alignments of divergent sequences in the search set.
 
--` process_specs.py`: This contains methods to sort species by family. It aids in the organization and classification of species based on their taxonomic families.
+- `process_specs.py`: This contains methods to sort species by family. It aids in the organization and classification of species based on their taxonomic families.
 
 - `run_clustal.py`: This script is an add-on tool and can be used if manual Clustal analysis is required.
 
