@@ -181,3 +181,21 @@ If you want to re-run the script and the search set remains the same as the prev
 ## Troubleshooting
 <a name="troubleshoot"></a>
 
+If you encounter any issues while using the tool, you can refer to the following troubleshooting steps:
+
+- **Error message indicating duplicate protein or nucleotide sequences when making BLAST database:** This usually occurs when the script attempts to download the search set data, but there are existing 'prot.faa' and 'nucl.fna' files from a previous run of the script in the working directory. To resolve this, delete the existing files and run the script again.
+
+- **Error message indicating invalid amino acid or nucleotide when making BLAST database:** This error can occur due to a poor internet connection, causing interruptions during the download process from NCBI databases to your local computer. This causes the FASTA file to be formatted incorrectly. To resolve this, try running the script again with a better internet connection and ensure the 'prot.faa' and 'nucl.fna' files are not broken (delete them if necessary).
+
+- **Required search set database and/or files not found in the directory:** Make sure all the required files are present in the working directory before running the script. These files include:
+  - `nucl.fna`
+  - `prot.faa`
+  - `all_spec.txt`
+  - `prot_data_specs.txt`
+  - `prot_files_all_dict.txt`
+  - All folders named after the input taxon IDs.
+
+- **No BLAST result text files generated:** If there are no blastp results for a protein query or no blastx/tblastn results for a nucleotide query, it could be due to either none of the species in the search set having a protein dataset. In any blast types, another reason could be there being no blast hits for the given query.
+
+- **Query sequence file and/or Query nucleotide/protein dataset file not in valid format:** Ensure that the query sequence file and/or query nucleotide/protein dataset are in FASTA format and contain valid amino acid or nucleotide bases. Check for any formatting errors or invalid characters in the files.
+
