@@ -20,6 +20,7 @@ By providing an amino acid or nucleotide query sequence along with a search set,
 
 ## Installation
 <a name="installation"></a>
+
 To download the zip file, click [here](http://github.com/maitiennguyen/23CCSR/zipball/master/) or select 'Download ZIP' under '<>Code' drop-down options.
 
 After unzipping, make sure to have all files in the working directory.
@@ -38,6 +39,7 @@ Before running the script, make sure you have Python on your computer and the fo
 
 ## Usage
 <a name="usage"></a>
+
 ### Required Arguments
 ```
 -qseq <query_sequence_file>
@@ -84,6 +86,7 @@ This command can be used to perform Clustal analysis of sequences in FASTA forma
 
 ## Examples
 <a name="examples"></a>
+
 ```
 python main.py -qseq cnp20_spombe.fasta -qdb spombe.faa -qname Schizosaccharomyces,pombe -qtype prot -sset 147537 -download no 
 ```
@@ -99,22 +102,80 @@ python run_clustal.py manual_anno_seqs.fasta
 
 ## File Documentation
 <a name="filedoc"></a>
+
 ### Python Files
-- main.py: This is the main script that should be run to execute the tool. It integrates all the other Python files and orchestrates the workflow.
 
-- user_input.py: This contains methods to process user terminal arguments and handle any argument errors. It ensures that the user inputs are correctly parsed and validated before further processing.
+The script for the tool consists of the following files:
 
-- blast.py: This contains methods to perform BLAST (Basic Local Alignment Search Tool) and reciprocal BLAST searches. It also handles the processing and validation of the search results.
+- `main.py`: This is the main script that should be run to execute the tool. It integrates all the other Python files and orchestrates the workflow.
 
-- annotation.py: This contains methods to sort the BLAST results into two lists: one that requires manual annotation and another that can undergo automated annotation. This file helps streamline the annotation process by categorizing the results accordingly.
+- `user_input.py`: This contains methods to process user terminal arguments and handle any argument errors. It ensures that the user inputs are correctly parsed and validated before further processing.
 
-- clustal.py: This contains methods to perform Clustal analysis. It facilitates multiple sequence alignment, allowing for the creation of biologically meaningful alignments of divergent sequences in the search set.
+- `blast.py`: This contains methods to perform BLAST (Basic Local Alignment Search Tool) and reciprocal BLAST searches. It also handles the processing and validation of the search results.
 
-- process_specs.py: This contains methods to sort species by family. It aids in the organization and classification of species based on their taxonomic families.
+- `annotation.py`: This contains methods to sort the BLAST results into two lists: one that requires manual annotation and another that can undergo automated annotation. This file helps streamline the annotation process by categorizing the results accordingly.
 
-- run_clustal.py: This script is an add-on tool and can be used if manual Clustal analysis is required.
+- `clustal.py`: This contains methods to perform Clustal analysis. It facilitates multiple sequence alignment, allowing for the creation of biologically meaningful alignments of divergent sequences in the search set.
+
+-` process_specs.py`: This contains methods to sort species by family. It aids in the organization and classification of species based on their taxonomic families.
+
+- `run_clustal.py`: This script is an add-on tool and can be used if manual Clustal analysis is required.
 
 ### Output Files
+
+After running the tool, the following output files will be generated:
+
+- `nucl.fna`: The genome dataset of all species in the search set in FASTA format.
+
+- `prot.faa`: The protein dataset of all species in the search set in FASTA format.
+
+- `all_spec.txt`: A text file containing the names of all species in the search set.
+
+- `prot_data_specs.txt`: A text file containing the names of species in the search set with a protein dataset.
+
+- `prot_files_all_dict.txt`: A text file containing the file paths to the protein files in FASTA format for each species with a protein dataset in the search set.
+
+- Folders named after the input taxon IDs: Each folder contains the genome and protein dataset files for each species in that taxon.
+
+- `[blast_type]1_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format before any validation. The `#` represents the query round number, and `blast_type` can be either `blastp` or `tblastx` depending on the query sequence type.
+
+- `[blast_type]2_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format after being validated by reciprocal BLAST. The `#` represents the query round number, and `blast_type` can be either `blastp` or `tblastx` depending on the query sequence type.
+
+- `[blast_type]_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format before or after reciprocal BLAST. The `#` represents the query round number, and `blast_type` can be either `tblastn` or `blastx`.
+
+- `[blast_type]_[#]_summary_report.txt`: A text file containing a summary of the valid BLAST hits. The `#` represents the query round number.
+
+- `complete_blast_summary_report.txt`: A text file containing an overview summary of the BLAST results from all query rounds.
+
+- `annotated_[species_name]_dict.txt`: A text file containing information about annotated nucleotide hits for a specific query species and round. The `[species_name]` represents the query species for that round.
+
+- `[species_name]_man_anno_seqs.txt`: A text file containing information about nucleotide hit sequences that need to be manually annotated and excluded from the script's Clustal analysis for a specific query species and round.
+
+- `all_man_anno.txt`: A text file containing information about all nucleotide hit sequences that require manual annotation from all query rounds.
+
+- `complete_manual_anno_summary.txt`: A text file containing a summary overview of all sequences that require manual annotation from all query rounds.
+
+- `complete_auto_anno_summary.txt`: A text file containing a summary overview of all sequences that have been automatically annotated by the script from all query rounds.
+
+- `auto_anno_seqs.fasta`: A file containing all script-annotated nucleotide sequences in FASTA format from all query rounds.
+
+- `auto_algn.clustal`: The Clustal analysis results of all protein and nucleotide hit alignments from all query rounds in Clustal format.
+
+- `auto_algn.fasta`: The Clustal analysis results of all protein and nucleotide hit alignments from all query rounds in FASTA format.
+
+These output files provide valuable information and results from the tool's data mining and analysis workflow, any files not mentioned are miscellaneous and can be discarded.
+
+### Required Files for Re-using search set
+
+If you want to re-run the script and the search set remains the same as the previous run (when the argument for -download is 'no'), then the following files are required to be in the working directory for the script to run:
+
+- `nucl.fna`
+- `prot.faa`
+- `all_spec.txt`
+- `prot_data_specs.txt`
+- `prot_files_all_dict.txt`
+- All folders named after the input taxon IDs
+
 
 
 ## Troubleshooting
