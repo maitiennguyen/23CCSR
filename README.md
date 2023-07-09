@@ -29,6 +29,9 @@ After unzipping, make sure to have all files in the working directory.
 
 Before running the script, make sure you have Python on your computer and the following required Python packages and tools installed (using conda environment and conda for installation is recommended) :
 
+### Python Version
+- 3.10 or newer
+
 ### Python Packages
 -	Biopython (https://biopython.org/wiki/Download)
 
@@ -36,7 +39,7 @@ Before running the script, make sure you have Python on your computer and the fo
 -	NCBI BLAST+ (https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html#downloadblastdata)
 -	NCBI datasets and dataformat (https://www.ncbi.nlm.nih.gov/datasets/docs/v2/download-and-install/)
 -	Clustal Omega (http://www.clustal.org/omega/)
--	ETE Toolkit (http://etetoolkit.org)
+-	ETE Toolkit (https://anaconda.org/bioconda/ete3)
 
 
 ## Usage
