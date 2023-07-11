@@ -30,7 +30,7 @@ After unzipping, make sure to have all files in the working directory.
 Before running the script, make sure you have Python on your computer and the following required Python packages and tools installed (using conda environment and conda for installation is recommended) :
 
 ### Python Version
-- 3.10 or newer
+- 3.10 or later
 
 ### Python Packages
 -	Biopython (https://biopython.org/wiki/Download)
@@ -82,11 +82,17 @@ Specifies whether the search set data has already been downloaded with the scrip
 ```
 Specifies the E-value threshold for the blast and reciprocal blast searches. If not specified, the default value is '1e-01'.
 
+```
+-threads <num_threads>
+```
+Specifies the number of threads to be used for blast and clustal. Value has to be greater than '0'. If not specified, the default value is '1'.
+
 ### Add-on Command
 ```
 run_clustal.py <fasta_file>
 ```
 This command can be used to perform Clustal analysis of sequences in FASTA format individually.
+
 
 
 ## Examples
@@ -97,7 +103,7 @@ python main.py -qseq cnp20_spombe.fasta -qdb spombe.faa -qname Schizosaccharomyc
 ```
 
 ```
-python main.py -qseq sir2_gene.fna -qdb scereviseae.fna -qname Saccharomyces,cerevisiae -qtype nucl -sset 4930,34365,2916678 -download yes -evalue 1e-50
+python main.py -qseq sir2_gene.fna -qdb scereviseae.fna -qname Saccharomyces,cerevisiae -qtype nucl -sset 4930,34365,2916678 -download yes -evalue 1e-50 -threads 8
 ```
 
 ```
