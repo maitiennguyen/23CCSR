@@ -25,6 +25,7 @@ def main(argv):
 	tblastn_evalue = input_processor.get_evalue()
 	tblastx_evalue = input_processor.get_evalue()
 	blastx_evalue = input_processor.get_evalue()
+	thread_num = input_processor.get_threads()
 	
 	# check if provided parameter files exist
 	if os.path.exists(seq_query):
@@ -102,7 +103,7 @@ def main(argv):
 
 			# perform blastp using provided prot seq and provided aa db to confirm qseq_id in aa db
 			print("Done")
-			qseq_id = get_qseq_id(seq_query, subj_db, q_type)
+			qseq_id = get_qseq_id(seq_query, subj_db, q_type, thread_num)
 
 
 			# check if there is a protein fasta file
@@ -115,7 +116,7 @@ def main(argv):
 
 				# perform blastp of the query sequence against protein database, get dict of seq id and its info
 				print("\n\nPerforming blastp...")
-				blastp_hit_dict, blastp_rslt_file = blast_aa_ds(seq_query, prot_db, q_type, blastp_evalue)
+				blastp_hit_dict, blastp_rslt_file = blast_aa_ds(seq_query, prot_db, q_type, blastp_evalue, thread_num)
 				print("Done")
 
 				# write blast results to txt file
@@ -124,7 +125,7 @@ def main(argv):
 				# reverse blasto tp confirm results from 
 				if len(blastp_hit_dict) > 0:
 					print("\n\nPerforming reciprocal blastp...")
-					blastp_rev_list = recip_blast("blastp", blastp_hit_dict, subj_db, qseq_id, prot_db)
+					blastp_rev_list = recip_blast("blastp", blastp_hit_dict, subj_db, qseq_id, prot_db, thread_num)
 					print("Done")
 
 					# update blastp_hit_dict after validation
@@ -159,7 +160,7 @@ def main(argv):
 
 				# perfrom tblasn of query sequence against nucleotide database, get dict of seq id and its info
 				print("\n\nPerforming tblastn...")
-				tblastn_hit_dict, tblastn_rslt_file = blast_nucl_ds(seq_query, q_type, nucl_db, tblastn_evalue)
+				tblastn_hit_dict, tblastn_rslt_file = blast_nucl_ds(seq_query, q_type, nucl_db, tblastn_evalue, thread_num)
 				print("Done")
 
 				# write blast results to txt file
@@ -168,7 +169,7 @@ def main(argv):
 				# perform blastx on each tblastn result, keep valid results
 				if len(tblastn_hit_dict) > 0:
 					print("\n\nPerforming reciprocal blastx...")
-					blastx_rev_list = recip_blast("blastx", tblastn_hit_dict, subj_db, qseq_id, nucl_db)
+					blastx_rev_list = recip_blast("blastx", tblastn_hit_dict, subj_db, qseq_id, nucl_db, thread_num)
 					print("Done")
 
 					# update tblastn_hit_dict after validation
@@ -238,7 +239,7 @@ def main(argv):
 			print("Done")
 
 			# perform blastp using provided prot seq and provided aa db to confirm qseq_id in aa db
-			qseq_id = get_qseq_id(seq_query, subj_db, q_type)
+			qseq_id = get_qseq_id(seq_query, subj_db, q_type, thread_num)
 
 			# check if there is a protein fasta file
 			if prot_fasta_file is not None:
@@ -250,7 +251,7 @@ def main(argv):
 
 				# perform blastx of the query sequence against protein database, get dict of seq id and its info
 				print("\n\nPerforming blastx...")
-				blastx_hit_dict, blastx_rslt_file = blast_aa_ds(seq_query, q_type, prot_db, blastx_evalue)
+				blastx_hit_dict, blastx_rslt_file = blast_aa_ds(seq_query, q_type, prot_db, blastx_evalue, thread_num)
 				print("Done")
 
 				# write blast results to txt file
@@ -259,7 +260,7 @@ def main(argv):
 				# reverse blasto tp confirm results from 
 				if len(blastx_hit_dict) > 0:
 					print("\n\nPerforming reciprocal tblastn...")
-					tblastn_rev_list = recip_blast("tblastn", blastx_hit_dict, subj_db, qseq_id, prot_db)
+					tblastn_rev_list = recip_blast("tblastn", blastx_hit_dict, subj_db, qseq_id, prot_db, thread_num)
 					print("Done")
 
 					# update blastx_hit_dict after validation
@@ -293,7 +294,7 @@ def main(argv):
 
 				# perfrom tblasx of query sequence against nucleotide database, get dict of seq id and its info
 				print("\n\nPerforming tblastx...")
-				tblastx_hit_dict, tblastx_rslt_file = blast_nucl_ds(seq_query, q_type, nucl_db, tblastx_evalue)
+				tblastx_hit_dict, tblastx_rslt_file = blast_nucl_ds(seq_query, q_type, nucl_db, tblastx_evalue, thread_num)
 				print("Done")
 
 				# write blast results to txt file
@@ -302,7 +303,7 @@ def main(argv):
 				# perform blastx on each tblastn result, keep valid results
 				if len(tblastx_hit_dict) > 0:
 					print("\n\nPerforming reciprocal tblastx...")
-					tblastx_rev_list = recip_blast("tblastx", tblastx_hit_dict, subj_db, qseq_id, nucl_db)
+					tblastx_rev_list = recip_blast("tblastx", tblastx_hit_dict, subj_db, qseq_id, nucl_db, thread_num)
 					print("Done")
 
 					# update tblastn_hit_dict after validation
@@ -662,7 +663,7 @@ def main(argv):
 			file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], scaffold_id, column_widths[1], min_posit, column_widths[2], max_posit, column_widths[3], q_spec, column_widths[4]))      
 	
 	# make a clustal object
-	clustal = Clustal(final_annotated_dict, final_prot_dict, prot_db)
+	clustal = Clustal(final_annotated_dict, final_prot_dict, prot_db, thread_num)
 	
 	# get fasta file for all seqs fron aumotated annotation
 	clustal.get_seqs_fasta()

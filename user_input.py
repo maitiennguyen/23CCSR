@@ -5,7 +5,7 @@ class InputProcessor():
 	def __init__(self, argv):
 		self.argv = argv
 		self.req_args = ["-qseq", "-qdb", "-qtype", "-qname", "-sset", "-download"]
-		self.opt_args = ["-evalue"]
+		self.opt_args = ["-evalue", "-threads"]
 		
 	def valid_index(self, arg, index):
 		if index == len(self.argv) - 1:
@@ -146,6 +146,28 @@ class InputProcessor():
 			sys.exit()
 			
 		return evalue
+	
+	def get_threads(self):
+		thread = "1" 
+		
+		for index, arg in enumerate(self.argv):
+			if arg == "-threads":
+				self.valid_index(arg, index)
+				thread = self.argv[index+1]
+				self.valid_arg(arg, thread)
+				break
+		
+		try:
+			int(thread)
+		except ValueError:
+			print("\nERROR: Invalid input for threads. See README.md for usage.\n")
+			sys.exit()
+			
+		if int(thread) == 0:
+			print("\nERROR: Invalid input for threads. See README.md for usage.\n")
+			sys.exit()
+			
+		return thread
 	
 	def check_invalid_flag(self):
 		for arg in self.argv:

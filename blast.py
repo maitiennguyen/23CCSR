@@ -8,14 +8,14 @@ from Bio.SeqRecord import SeqRecord
 
 
 # get query id based on the provded database
-def get_qseq_id(seq, db, typ):
+def get_qseq_id(seq, db, typ, thread_num):
 	qseq_id = None
 	
 	if typ == "prot":
-		subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(seq, db, "qseq_id.blasted", "6").split())
+		subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads {4}".format(seq, db, "qseq_id.blasted", "6", thread_num).split())
 		
 	elif typ == "nucl":
-		subprocess.run("blastn -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(seq, db, "qseq_id.blasted", "6").split())
+		subprocess.run("blastn -query {0} -db {1} -out {2} -outfmt {3} -num_threads {4}".format(seq, db, "qseq_id.blasted", "6", thread_num).split())
 	
 	with open("qseq_id.blasted", "r") as blastp_rslt:
 		try:
@@ -215,7 +215,7 @@ def update_blast_dict(blast_hit_dict, valid_seq_list):
 
 
 # perform blast against amino acids dataset
-def blast_aa_ds(query, typ, db, evalue):
+def blast_aa_ds(query, typ, db, evalue, thread_num):
     
 	# dict of hits, key=>prot_id value=>[species_name, start, end, evalue, subsequence]
 	blast_hits = {}
@@ -230,10 +230,10 @@ def blast_aa_ds(query, typ, db, evalue):
 
 	if blast_typ == "blastp":
 		# run blastp 
-		subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -evalue {4} -num_threads 8".format(query, db, blast_file_name, "6", evalue).split())
+		subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -evalue {4} -num_threads {5}".format(query, db, blast_file_name, "6", evalue, thread_num).split())
 	elif blast_typ == "blastx":
 		# run blastx 
-		subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -evalue {4} -num_threads 8".format(query, db, blast_file_name, "6", evalue).split())
+		subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -evalue {4} -num_threads {5}".format(query, db, blast_file_name, "6", evalue, thread_num).split())
 
 	# fill out information into the dictionary
 	# open blast result file
@@ -290,7 +290,7 @@ def blast_aa_ds(query, typ, db, evalue):
 
 
 # perform blast against nucleotides dataset
-def blast_nucl_ds(query, typ, db, evalue):
+def blast_nucl_ds(query, typ, db, evalue, thread_num):
 
 	# dict of hits, key=>prot_id value=>[species_name, start, end, evalue, subsequence]
 	blast_hits = {}
@@ -305,10 +305,10 @@ def blast_nucl_ds(query, typ, db, evalue):
 
 	if blast_typ == "tblastn":
 		# run tblastn 
-		subprocess.run("tblastn -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid length qstart qend sstart send evalue qseq sseq sframe"])
+		subprocess.run("tblastn -query {0} -db {1} -out {2} -evalue {3} -num_threads {4}".format(query, db, blast_file_name, evalue, thread_num).split() + ["-outfmt", "6 qseqid sseqid length qstart qend sstart send evalue qseq sseq sframe"])
 	elif blast_typ == "tblastx":
 		# run tblastx 
-		subprocess.run("tblastx -query {0} -db {1} -out {2} -evalue {3} -num_threads 8".format(query, db, blast_file_name, evalue).split() + ["-outfmt", "6 qseqid sseqid length qstart qend sstart send evalue qseq sseq sframe"])
+		subprocess.run("tblastx -query {0} -db {1} -out {2} -evalue {3} -num_threads {4}".format(query, db, blast_file_name, evalue, thread_num).split() + ["-outfmt", "6 qseqid sseqid length qstart qend sstart send evalue qseq sseq sframe"])
 	
     # fill out information into the dictionary
 	# open blast result file
@@ -388,7 +388,7 @@ def blast_nucl_ds(query, typ, db, evalue):
 	return blast_hits, blast_file_name
 
 # reverse blast
-def recip_blast(blast_type, query_dict, db, id_of_interest, db2):	
+def recip_blast(blast_type, query_dict, db, id_of_interest, db2, thread_num):	
 	blast_file_name = blast_type + "_rev_results.blasted"
 
 	# list of valid hits id
@@ -401,19 +401,19 @@ def recip_blast(blast_type, query_dict, db, id_of_interest, db2):
 		if blast_type == "blastp":
 			# write seq to txt file
 			query = write_seq(query_dict, seq_id, "prot", db2)
-			subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
+			subprocess.run("blastp -query {0} -db {1} -out {2} -outfmt {3} -num_threads {4}".format(query, db, blast_file_name, "6", thread_num).split())
 		elif blast_type == "blastx":
 			# write seq to txt file
 			query = write_seq(query_dict, seq_id, "nucl", db2)
-			subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
+			subprocess.run("blastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads {4}".format(query, db, blast_file_name, "6", thread_num).split())
 		elif blast_type == "tblastn":
 			# write seq to txt file
 			query = write_seq(query_dict, seq_id, "prot", db2)
-			subprocess.run("tblastn -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
+			subprocess.run("tblastn -query {0} -db {1} -out {2} -outfmt {3} -num_threads {4}".format(query, db, blast_file_name, "6", thread_num).split())
 		elif blast_type == "tblastx":
 			# write seq to txt file
 			query = write_seq(query_dict, seq_id, "nucl", db2)
-			subprocess.run("tblastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads 8".format(query, db, blast_file_name, "6").split())
+			subprocess.run("tblastx -query {0} -db {1} -out {2} -outfmt {3} -num_threads {4}".format(query, db, blast_file_name, "6", thread_num).split())
 
 		# make sure file is not empty
 		if os.stat(blast_file_name).st_size != 0:
