@@ -6,12 +6,11 @@ import subprocess
 
 class Clustal():
 	
-	def __init__(self, anno_nucl_dict, blast_dict, prot_db, thread_num):
+	def __init__(self, anno_nucl_dict, blast_dict, prot_db):
 		self.nucl_dict = anno_nucl_dict
 		self.rslt_filename = ''
 		self.blast_dict = blast_dict
 		self.prot_db = prot_db
-		self.thread_num = thread_num
 		
 		
 	# fasta files for aa and nucl seqs to go into clustal
@@ -102,8 +101,8 @@ class Clustal():
 				out_name1 = "auto_algn.clustal"
 				out_name2 = "auto_algn.fasta"
 
-				subprocess.run("clustalo -i {0} -o {1} --outfmt=clustal --resno --threads={2} --force".format(self.rslt_filename, out_name1, self.thread_num).split())
-				subprocess.run("clustalo -i {0} -o {1} --outfmt=fasta --resno --threads={2} --force".format(self.rslt_filename, out_name2, self.thread_num).split())
+				subprocess.run("clustalo -i {0} -o {1} --outfmt=clustal --resno --force".format(self.rslt_filename, out_name1).split())
+				subprocess.run("clustalo -i {0} -o {1} --outfmt=fasta --resno --force".format(self.rslt_filename, out_name2).split())
 
 				if os.path.exists(out_name1):
 					self.add_spec_names(out_name1)
