@@ -1,9 +1,9 @@
-# 23CCSR Tool
-This is a tool that aims to streamline the data mining process and facilitate the analysis of biological sequences. 
+# mign
+mign is a tool that aims to streamline the data mining process and facilitate the analysis of biological sequences. 
 
-It automates the process of downloading data from NCBI databases, executing BLAST searches, performing basic annotation, and conducting Clustal analysis. It can be a helpful workflow for exploring and analyzing biological sequence data in the context of evolutionary relationships.
+mign automates the process of downloading data from NCBI databases, executing BLAST searches, performing basic annotation, and conducting Clustal analysis. It can be a helpful workflow for exploring and analyzing biological sequence data in the context of evolutionary relationships.
 
-By providing an amino acid or nucleotide query sequence along with a search set, this tool communicates with NCBI databases to download protein and genome datasets for all species in the search set. It performs BLAST searches, including reciprocal BLAST, to identify sequences in the search set that are similar to the query sequence. Additionally, the tool conducts basic annotation to determine start and stop codons for nucleotide sequence hits. For further analysis, protein and nucleotide sequence hits are inputted into Clustal Omega, allowing meaningful multiple sequence alignments for divergent sequences in the search set.
+By providing an amino acid or nucleotide query sequence along with a search set, mign communicates with NCBI databases to download protein and genome datasets for all species in the search set. It performs BLAST searches, including reciprocal BLAST, to identify sequences in the search set that are similar to the query sequence. Additionally, mign conducts basic annotation to determine the start and stop codons for nucleotide sequence hits. For further analysis, protein and nucleotide sequence hits are inputted into Clustal Omega, allowing meaningful multiple sequence alignments for divergent sequences in the search set.
 
 
 ## Table of Contents
@@ -18,7 +18,45 @@ By providing an amino acid or nucleotide query sequence along with a search set,
 ## Workflow
 <a name="workflow"></a>
 
-Coming Soon...
+#### Homologous Sequences Search using BLAST+:
+- Users provide a biological sequence of interest and a species search set.
+- mign performs a BLAST+ search using the provided biological sequence as the query and the species' biological dataset the search set.
+- Homologous sequences to the query are identified based on sequence similarity.
+
+#### Protein Dataset Search:
+- Species with annotated genome in the NCBI database are added to the protein search set.
+- The biological sequence of interest is used as the query in BLAST+ search to identify homologous sequences in the protein dataset.
+
+#### Reciprocal Best Hit Validation (Protein):
+- The tool performs reciprocal BLAST searches for each identified homologous sequence.
+- Only sequences where the initial biological sequence of interest is the top hit in the reciprocal BLAST results are considered valid and included in the final set of homologous sequences.
+
+#### Nucleotide Dataset Search:
+- Species without annotated genome or without hits from the protein BLAST+ search are added to the nucleotide search set.
+- The biological sequence of interest is used as the query in another BLAST+ search to identify homologous sequences in the nucleotide dataset.
+
+#### Reciprocal Best Hit Validation (Nucleotide):
+- Reciprocal BLAST searches are performed to confirm the identified nucleotide homologous sequences.
+- Only sequences where the initial biological sequence of interest is the top hit in the reciprocal BLAST results are considered valid and included in the final set of homologous sequences.
+
+#### Iterative Search:
+- The tool selects a random species in the protein hit results, the species must be from a different family rank than the query species', and uses its homologous sequence as a new query.
+- The search for homologous sequences continues iteratively until no new sequences are found, there are no species in other family ranks to select from, or there are no species left in the protein search results to select from.
+
+#### Annotation:
+- Nucleotide hits requiring automated annotation and those needing manual annotation are identified.
+- For sequences with more than one non-overlapping hit at the same scaffold, manual annotation is required, and the user is provided with an output file to work with.
+- Automated annotation of homologous sequences is performed for the remaining hits.
+- Start and stop codons are identified based on proximity to the sequence ends and in consideration of the scaffold's start and end positions.
+- For the stop codon, it searches for the closest occurrence in the 3' direction of the sequence.
+- For the start codon, it searches for the nearest stop codon in the 5' direction of the sequence and proceeds towards the 3' direction until it encounters the first start codon.
+- If no stop codon and/or start codon is found, the start and/or end of the scaffold becomes the start and end of the sequence.
+- The annotated nucleotide sequences are translated into corresponding amino acid sequences.
+
+#### Multiple Sequence Alignment using Clustal Omega:
+- The protein hits and the translated nucleotide sequences with automated annotation are compiled into a FASTA file.
+- The FASTA file is inputted into Clustal Omega for multiple sequence alignment.
+
 
 ## Installation
 <a name="installation"></a>
