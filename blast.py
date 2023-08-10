@@ -378,7 +378,9 @@ def blast_nucl_ds(query, typ, db, evalue):
 					spec_name = ' '.join(full_name_list[1:3])
 
 				# fill out info for dictionary 
-				seq_id = seq_id.split("|")[1]
+				if "|" in seq_id:
+					seq_id = seq_id.split("|")[1]
+					
 				if seq_id not in blast_hits.keys():
 					blast_hits[seq_id] = [[spec_name, sstart, send, evalue, qstart, qend, length, qseq, sseq, sframe]]
 				else:
