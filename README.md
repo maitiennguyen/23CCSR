@@ -71,7 +71,7 @@ Before running the script, make sure you have Python on your computer and the fo
 - 3.10 or later
 
 ### Python Packages
--	Biopython (https://biopython.org/wiki/Download)
+-	Biopython (https://anaconda.org/anaconda/biopython)
 
 ### Command-Line Tools
 -	NCBI BLAST+ (https://anaconda.org/bioconda/blast)
@@ -80,6 +80,10 @@ Before running the script, make sure you have Python on your computer and the fo
 -	Clustal Omega (https://anaconda.org/bioconda/clustalo)
     -	If running on Apple M1/M2, Clustal Omega should be installed using precompiled binary (http://www.clustal.org/omega/)
 -	ETE Toolkit (https://anaconda.org/bioconda/ete3)
+    -	If installation fails, use pip:
+    	-	```pip install six```
+        -	```pip install ete3```
+
 
 
 ## Usage
