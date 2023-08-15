@@ -5,6 +5,7 @@ from annotation import *
 from clustal import *
 from process_specs import *
 from user_input import *
+from organize_files import *
 
 def main(argv):
 	
@@ -37,6 +38,10 @@ def main(argv):
 	else:
 		print("\nERROR: Query nucl/prot dataset file not found in directory.\n")
 		sys.exit()
+		
+	# save a copy of the original input fil names
+	seq_query_copy = seq_query
+	ds_query_copy = ds_query
 	
 	
 	# BLAST
@@ -390,6 +395,10 @@ def main(argv):
 		# update current query files
 		seq_query = next_id_fasta
 		ds_query = prot_file_paths[next_spec_name]
+		
+		# update query type if neccessary, (since next query will always be prot)
+		if q_type == "nucl":
+			q_type = "prot"
 
 		# update current species name
 		q_spec_name = next_spec_name
@@ -521,7 +530,7 @@ def main(argv):
 		for line in lines:
 			outfile.writelines(line)
 	
-	# write ssummary report for all manual annotation seqs
+	# write summary report for all manual annotation seqs
 	filename = 'all_man_anno.txt' 
 	man_sum = "complete_manual_anno_summary.txt"
 
@@ -671,6 +680,10 @@ def main(argv):
 	clustal.run_clustal()
 	print("Done")
 	
+	
+	# ORGANIZE FILES INTO FOLDERS
+	organizer = Organizer(i, taxIDS, ds_query_copy, seq_query_copy)
+	organizer.organize_files()
 	
 
 if __name__ == "__main__":
