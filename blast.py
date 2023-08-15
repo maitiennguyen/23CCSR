@@ -124,7 +124,7 @@ def get_fasta_files(taxID_list):
 			if os.path.exists(prot_file):
 				prot_files.append(prot_file)
 				for name in all_specs:
-					if name in acs_asm_tuple[2].replace("[", "").replace("]", ""):
+					if name in acs_asm_tuple[2].replace("[", "").replace("]", "").replace("'", ""):
 						prot_specs.append(name)
 						prot_file_paths[name] = prot_file
 				
@@ -278,6 +278,10 @@ def blast_aa_ds(query, typ, db, evalue):
 						spec_name = ' '.join(full_name_list[:3])
 				else:
 					spec_name = ' '.join(full_name_list[:2])
+					
+				# remove ' 
+				if "'" in spec_name:
+					spec_name = spec_name.replace("'", "")
 
 				# fill out info for dictionary 
 				if seq_id not in blast_hits.keys():
