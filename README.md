@@ -142,7 +142,7 @@ python main.py -qseq cnp20_spombe.fasta -qdb spombe.faa -qname Schizosaccharomyc
 ```
 
 ```
-python main.py -qseq sir2_gene.fna -qdb scereviseae.fna -qname Saccharomyces,cerevisiae -qtype nucl -sset 4930,34365,2916678 -download yes -evalue 1e-50
+python main.py -qseq sir2_gene.fna -qdb scerevisiae.fna -qname Saccharomyces,cerevisiae -qtype nucl -sset 4930,34365,2916678 -download yes -evalue 1e-50
 ```
 
 ```
@@ -173,51 +173,71 @@ The script for the tool consists of the following files:
 
 ### Output Files
 
-After running the tool, the following output files will be generated:
+After running the tool, the following output folders and files will be generated:
 
-- `nucl.fna`: The genome dataset of all species in the search set in FASTA format.
+- `InputFiles`: A folder containing the user input files.
 
-- `prot.faa`: The protein dataset of all species in the search set in FASTA format.
+  
+- `SearchSetFiles`: A folder containing files that are required for re-using search set for future runs.
 
-- `all_spec.txt`: A text file containing the names of all species in the search set.
+    - `nucl.fna`: The genome dataset of all species in the search set in FASTA format.
+    
+    - `prot.faa`: The protein dataset of all species in the search set in FASTA format.
+    
+    - `all_spec.txt`: A text file containing the names of all species in the search set.
+    
+    - `prot_data_specs.txt`: A text file containing the names of species in the search set with a protein dataset.
+    
+    - `prot_files_all_dict.txt`: A text file containing the file paths to the protein files in FASTA format for each species with a protein dataset in the search set.
+    
+    - Folders named after the input taxon IDs: Each folder contains the genome and protein dataset files for each species in that taxon.
 
-- `prot_data_specs.txt`: A text file containing the names of species in the search set with a protein dataset.
+ 
+- `MainFiles`: A folder containing primary output files.
 
-- `prot_files_all_dict.txt`: A text file containing the file paths to the protein files in FASTA format for each species with a protein dataset in the search set.
+    - `complete_blast_summary_report.txt`: A text file containing an overview summary of the BLAST results from all query rounds.
+ 
+    - `complete_manual_anno_summary.txt`: A text file containing a summary overview of all sequences that require manual annotation from all query rounds.
 
-- Folders named after the input taxon IDs: Each folder contains the genome and protein dataset files for each species in that taxon.
+    - `complete_auto_anno_summary.txt`: A text file containing a summary overview of all sequences that have been automatically annotated by the script from all query rounds.
+   
+    - `auto_algn.clustal`: The Clustal analysis results of all protein and nucleotide hit alignments from all query rounds in Clustal format.
 
-- `[blast_type]1_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format before any validation. The `#` represents the query round number, and `blast_type` can be either `blastp` or `tblastx` depending on the query sequence type.
+    - `auto_algn.fasta`: The Clustal analysis results of all protein and nucleotide hit alignments from all query rounds in FASTA format.
 
-- `[blast_type]2_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format after being validated by reciprocal BLAST. The `#` represents the query round number, and `blast_type` can be either `blastp` or `tblastx` depending on the query sequence type.
 
-- `[blast_type]_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format before or after reciprocal BLAST. The `#` represents the query round number, and `blast_type` can be either `tblastn` or `blastx`.
+- `DictReports`: A folder containing BLAST results in Python dictionary format.
 
-- `[blast_type]_[#]_summary_report.txt`: A text file containing a summary of the valid BLAST hits. The `#` represents the query round number.
+    - `[blast_type]1_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format before any validation. The `#` represents the query round number, and `blast_type` can be either `blastp` or `tblastx` depending on the query sequence type.
+    
+    - `[blast_type]2_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format after being validated by reciprocal BLAST. The `#` represents the query round number, and `blast_type` can be either `blastp` or `tblastx` depending on the query sequence type.
+    
+    - `[blast_type]_[#]_dict.txt`: A text file containing the BLAST results in Python dictionary format before or after reciprocal BLAST. The `#` represents the query round number, and `blast_type` can be either `tblastn` or `blastx`.
 
-- `complete_blast_summary_report.txt`: A text file containing an overview summary of the BLAST results from all query rounds.
+ 
+- `SummaryReports`: A folder containing summary reports of the valid BLAST hits.
 
-- `annotated_[species_name]_dict.txt`: A text file containing information about annotated nucleotide hits for a specific query species and round. The `[species_name]` represents the query species for that round.
+    - `[blast_type]_[#]_summary_report.txt`: A text file containing a summary of the valid BLAST hits. The `#` represents the query round number.
 
-- `[species_name]_man_anno_seqs.txt`: A text file containing information about nucleotide hit sequences that need to be manually annotated and excluded from the script's Clustal analysis for a specific query species and round.
 
-- `all_man_anno.txt`: A text file containing information about all nucleotide hit sequences that require manual annotation from all query rounds.
+- `AnnotationFiles`: A folder containing files pertaining auto and manual annotation.
+  
+    - `annotated_[species_name]_dict.txt`: A text file containing information about annotated nucleotide hits for a specific query species and round. The `[species_name]` represents the query species for that round.
+    
+    - `[species_name]_man_anno_seqs.txt`: A text file containing information about nucleotide hit sequences that need to be manually annotated and excluded from the script's Clustal analysis for a specific query species and round.
 
-- `complete_manual_anno_summary.txt`: A text file containing a summary overview of all sequences that require manual annotation from all query rounds.
+    - `all_man_anno.txt`: A text file containing information about all nucleotide hit sequences that require manual annotation from all query rounds.
+      
+    - `auto_anno_seqs.fasta`: A file containing all script-annotated nucleotide sequences in FASTA format from all query rounds.
 
-- `complete_auto_anno_summary.txt`: A text file containing a summary overview of all sequences that have been automatically annotated by the script from all query rounds.
 
-- `auto_anno_seqs.fasta`: A file containing all script-annotated nucleotide sequences in FASTA format from all query rounds.
-
-- `auto_algn.clustal`: The Clustal analysis results of all protein and nucleotide hit alignments from all query rounds in Clustal format.
-
-- `auto_algn.fasta`: The Clustal analysis results of all protein and nucleotide hit alignments from all query rounds in FASTA format.
-
-These output files provide valuable information and results from the tool's data mining and analysis workflow, any files not mentioned are miscellaneous and can be discarded.
+- Miscellaneous folders and files:
+    - `BlastFiles`: A folder containing BLAST results in output 6 format.
+    - `QuerySeqs`: A folder containing query sequences in fasta format.
 
 ### Required Files for Re-using Search Set
 
-If you want to re-run the script and the search set remains the same as the previous run (when the argument for -download is 'no'), then the following files are required to be in the working directory for the script to run:
+If you want to re-run the script and the search set remains the same as the previous run (when the argument for -download is 'no'), then the following files, which can be found in the `SearchSetFiles` folder, are required to be in the working directory for the script to run,:
 
 - `nucl.fna`
 - `prot.faa`
@@ -240,7 +260,7 @@ If you encounter any issues while using the tool, you can refer to the following
   - This error can occur due to a poor internet connection, causing interruptions during the download process from NCBI databases to your local computer. This causes the FASTA file to be formatted incorrectly. To resolve this, try running the script again with a better internet connection and ensure the 'prot.faa' and 'nucl.fna' files are not broken (delete them if necessary).
 
 - **Required search set database and/or files not found in the directory**
-  - Make sure all the required files are present in the working directory before running the script. These files include:
+  - Make sure all the required files are present in the working directory before running the script. These files can be found in the `SearchSetFiles` folder, which include:
     - `nucl.fna`
     - `prot.faa`
     - `all_spec.txt`
