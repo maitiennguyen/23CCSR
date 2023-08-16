@@ -9,6 +9,7 @@ class Organizer():
 		self.taxIDs = taxIDs
 		self.ds_query = ds_query
 		self.seq_query = seq_query
+		self.file_list = os.listdir('.')
 	
 	# make folders
 	def mkdir(self, fol_name):
@@ -85,8 +86,14 @@ class Organizer():
 				mis_files.append(file_name5)
 				
 		self.rm(mis_files)
-		self.rm(['recip_seq.txt'])
-		 
+		
+		if os.path.exists('recip_seq.txt'):
+			self.rm(['recip_seq.txt'])	
+		
+		contains_blasted = any('.blasted' in file for file in self.file_list)
+		if contains_blasted:
+			subprocess.run("rm {0}".format('*.blasted'), shell=True)
+			
 			
 		# move dictionaries from all runs into one folder
 		dict_fol = self.mkdir('DictReports')
@@ -116,11 +123,6 @@ class Organizer():
 		self.mv(sum_rep_files, sum_rep_fol)
 		
 		
-		# move blast results from all runs into one folder
-		blast_fol = self.mkdir('BlastFiles')
-		subprocess.run("mv {0} {1}/".format('*.blasted', blast_fol), shell=True)
-		
-		
 		# move main files into one folder
 		main_fol = self.mkdir('MainFiles')
 		main_files = ['complete_blast_summary_report.txt', 'complete_manual_anno_summary.txt', 'complete_auto_anno_summary.txt', 'auto_algn.fasta', 'auto_algn.clustal']
@@ -141,7 +143,6 @@ class Organizer():
 		
 		# move query seq files into one folder
 		qseq_fol = self.mkdir('QuerySeqs')
-		file_list = os.listdir('.')
-		contains_fasta = any('.fasta' in file for file in file_list)
+		contains_fasta = any('.fasta' in file for file in self.file_list)
 		if contains_fasta:
 			subprocess.run("mv {0} {1}/".format('*.fasta', qseq_fol), shell=True)
