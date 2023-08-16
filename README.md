@@ -234,7 +234,6 @@ After running the tool, the following output folders and files will be generated
 
 
 - Miscellaneous folders and files:
-    - `BlastFiles`: A folder containing BLAST results in output 6 format.
     - `QuerySeqs`: A folder containing query sequences in fasta format.
 
 ### Required Files for Re-using Search Set
