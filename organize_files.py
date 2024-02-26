@@ -116,7 +116,7 @@ class Organizer():
 		
 		for i in range(len(sum_rep_dicts)):
 			for j in range(self.q_num):
-				sum_rep_file = sum_rep_dicts[i] + '_' + str(j+1) + '_summary_report.txt'
+				sum_rep_file = sum_rep_dicts[i] + '_' + str(j+1) + '_summary_report.tsv'
 				if os.path.exists(sum_rep_file):
 					sum_rep_files.append(sum_rep_file)
 					
@@ -125,7 +125,7 @@ class Organizer():
 		
 		# move main files into one folder
 		main_fol = self.mkdir('MainFiles')
-		main_files = ['complete_blast_summary_report.txt', 'complete_manual_anno_summary.txt', 'complete_auto_anno_summary.txt', 'auto_algn.fasta', 'auto_algn.clustal']
+		main_files = ['complete_blast_summary_report.tsv', 'complete_manual_anno_summary.tsv', 'complete_auto_anno_summary.tsv', 'auto_algn.fasta', 'auto_algn.clustal']
 		main_files2 = []
 		
 		for file in main_files:

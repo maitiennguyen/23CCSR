@@ -1,5 +1,6 @@
 import sys
 import os
+import csv
 from blast import *
 from annotation import *
 from clustal import *
@@ -143,7 +144,7 @@ def main(argv):
 					# write updated blast results to txt file
 					write_dict("blastp2", blastp_hit_dict, str(i))
 
-					# write summary txt file
+					# write summary tsv file
 					write_summary("blastp", blastp_hit_dict, prot_specs, all_specs, str(i))
 
 					# check if there is a nucleotide fasta file
@@ -187,7 +188,7 @@ def main(argv):
 					# write blast results to txt file
 					write_dict("blastx", tblastn_hit_dict, str(i))
 
-					# write summary txt file
+					# write summary tsv file
 					write_summary("tblastn", tblastn_hit_dict, blastp_hit_dict.values(), all_specs, str(i))
 					
 			# see if there are any new results
@@ -278,7 +279,7 @@ def main(argv):
 					# write updated blast results to txt file
 					write_dict("tblastn", blastx_hit_dict, str(i))
 
-					# write summary txt file
+					# write summary tsv file
 					write_summary("blastx", blastx_hit_dict, prot_specs, all_specs, str(i))
 
 					# check if there is a nucleotide fasta file
@@ -321,7 +322,7 @@ def main(argv):
 					# write blast results to txt file
 					write_dict("tblastx2", tblastx_hit_dict, str(i))
 
-					# write summary txt file
+					# write summary tsv file
 					write_summary("tblastx", tblastx_hit_dict, blastx_hit_dict.values(), all_specs, str(i))
 					
 			# see if there are any new results
@@ -411,7 +412,6 @@ def main(argv):
 	
 	# write summary report of all blast results into one file
 	final_report = {}
-	column_widths = [50, 30, 100, 100]
 	blast1 = ''
 	blast2 = ''
 	if q_type == "prot":
@@ -422,17 +422,19 @@ def main(argv):
 		blast2 = "tblastx_"
 		
 	for run in range(i):
-		fname1 = blast1 + str(run+1) + "_summary_report.txt"
-		fname2 = blast2 + str(run+1) + "_summary_report.txt"
+		fname1 = blast1 + str(run+1) + "_summary_report.tsv"
+		fname2 = blast2 + str(run+1) + "_summary_report.tsv"
 
 		if os.path.exists(fname1):
-			with open(fname1, 'r') as file:
-				for line_num, line in enumerate(file):
+			with open(fname1, 'r') as file1:
+				reader = csv.reader(file1, delimiter="\t")
+				for line_num, line in enumerate(reader):
 					if line_num == 0:
 						continue
-					species = line[:column_widths[0]].strip()
+                        
+					species = line[0]
 					
-					prot_hit_ids = line[column_widths[0]+column_widths[1]:].strip()
+					prot_hit_ids = line[2]
 					if prot_hit_ids == 'N/A':
 						prot_hit_ids = []
 					else:
@@ -447,13 +449,15 @@ def main(argv):
 								final_report[species][0].append(prot_id)
 
 		if os.path.exists(fname2):
-			with open(fname2, 'r') as file:
-				for line_num, line in enumerate(file):
+			with open(fname2, 'r') as file2:
+				reader = csv.reader(file2, delimiter="\t")
+				for line_num, line in enumerate(reader):
 					if line_num == 0:
 						continue
-					species = line[:column_widths[0]].strip()
+                        
+					species = line[0]
 					  
-					nucl_hit_ids = line[column_widths[0]+column_widths[1]:].strip()
+					nucl_hit_ids = line[2]
 					if nucl_hit_ids == 'N/A':
 						nucl_hit_ids = []
 					else:
@@ -466,29 +470,43 @@ def main(argv):
 						for nucl_id in nucl_hit_ids:
 							if nucl_id not in final_report[species][1]:
 								final_report[species][1].append(nucl_id)
+                                
+	# rows to write to tsv file
+	blast_sum_rows = []
+	# headers for tsv file
+	blast_sum_headers = ["Species", "Num Hit(s)", "Protein Hit ID(s)", "Nucleotide Hit ID(s)"]
 
-		with open("complete_blast_summary_report.txt", 'w') as file:
-			file.write("{:<{}} {:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Protein Hit ID(s)", column_widths[2], "Nucleotide Hit ID(s)", column_widths[3]))
+	for key, value in final_report.items():
+		species = key
+		count = 0
+		prot_hits = value[0]
+		nucl_hits = value[1]
 
-			for key, value in final_report.items():
-				species = key
-				count = 0
-				prot_hits = value[0]
-				nucl_hits = value[1]
-				
-				if len(prot_hits) == 0:
-					prot_hits = 'N/A'
-				else:
-					count += len(prot_hits)
-					prot_hits = ', '.join(prot_hits)	
-					
-				if len(nucl_hits) == 0:
-					nucl_hits = 'N/A'
-				else:
-					count += len(nucl_hits)
-					nucl_hits = ', '.join(nucl_hits)	
+		if len(prot_hits) == 0:
+			prot_hits = 'N/A'
+		else:
+			count += len(prot_hits)
+			prot_hits = ', '.join(prot_hits)	
 
-				file.write("{:<{}} {:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], prot_hits, column_widths[2], nucl_hits, column_widths[3]))
+		if len(nucl_hits) == 0:
+			nucl_hits = 'N/A'
+		else:
+			count += len(nucl_hits)
+			nucl_hits = ', '.join(nucl_hits)
+
+		row = {"Species": species, 
+			   "Num Hit(s)": count, 
+			   "Protein Hit ID(s)": prot_hits, 
+			   "Nucleotide Hit ID(s)": nucl_hits}
+
+		blast_sum_rows.append(row)
+        
+	# write to tsv file  
+	with open("complete_blast_summary_report.tsv", 'w') as blast_sum_file:
+		writer = csv.DictWriter(blast_sum_file, delimiter='\t', fieldnames=blast_sum_headers)
+		writer.writeheader()
+		writer.writerows(blast_sum_rows)
+        
 
 	
 	# ANNOTATION
@@ -532,7 +550,7 @@ def main(argv):
 	
 	# write summary report for all manual annotation seqs
 	filename = 'all_man_anno.txt' 
-	man_sum = "complete_manual_anno_summary.txt"
+	man_sum = "complete_manual_anno_summary.tsv"
 
 	manual_report = {}
 
@@ -568,20 +586,33 @@ def main(argv):
 					
 				if query_species not in  manual_report[subject_species][3]:
 					manual_report[subject_species][3].append(query_species)
+	
+	# rows to write to tsv file
+	man_sum_rows = []
+	# headers for tsv file
+	man_sum_headers = ["Species", "Scaffold ID", "Min Posit", "Max Posit", "Query Species"]
 
-	with open(man_sum, 'w') as file:
-		column_widths = [40, 100, 50, 50, 100]
+	for key, value in manual_report.items():
+		species = key
+		scaffold_id = ', '.join(value[0])
+		min_posit = ', '.join([str(p) for p in value[1]])
+		max_posit = ', '.join([str(p) for p in value[2]])
+		q_spec = ', '.join(value[3])
+		
+		row = {"Species": species, 
+			   "Scaffold ID": scaffold_id, 
+			   "Min Posit": min_posit, 
+			   "Max Posit": max_posit, 
+			   "Query Species": q_spec}
+		
+		man_sum_rows.append(row)
+	
+	# write to tsv file
+	with open(man_sum, 'w') as man_sum_file:
+		writer = csv.DictWriter(man_sum_file, delimiter='\t', fieldnames=man_sum_headers)
+		writer.writeheader()
+		writer.writerows(man_sum_rows)
 
-		file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Scaffold ID", column_widths[1], "Min Posit", column_widths[2], "Max Posit", column_widths[3], "Query Species", column_widths[4]))
-
-		for key, value in manual_report.items():
-			species = key
-			scaffold_id = ', '.join(value[0])
-			min_posit = ', '.join([str(p) for p in value[1]])
-			max_posit = ', '.join([str(p) for p in value[2]])
-			q_spec = ', '.join(value[3])
-
-			file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], scaffold_id, column_widths[1], min_posit, column_widths[2], max_posit, column_widths[3], q_spec, column_widths[4]))
 	print("Done")
 	
 	
@@ -637,7 +668,7 @@ def main(argv):
 			final_annotated_dict[seq_id].append(alignment)
 			
 	# write summary report for annotated nucl seqs
-	auto_sum = "complete_auto_anno_summary.txt"
+	auto_sum = "complete_auto_anno_summary.tsv"
 	auto_report = {}
 
 	for key, value in final_annotated_dict.items():
@@ -655,20 +686,34 @@ def main(argv):
 				auto_report[species][2].append(end)
 				for spec in nucl_seq_q_spec[scaffold_id]:
 					if spec not in auto_report[species][3]:
-						auto_report[species][3].append(spec)       
-	with open(auto_sum, 'w') as file:
-		column_widths = [40, 100, 50, 50, 100]
-
-		file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Scaffold ID", column_widths[1], "Start Posit", column_widths[2], "End Posit", column_widths[3], "Query Species", column_widths[4]))
-
-		for key, value in auto_report.items():
-			species = key
-			scaffold_id = ', '.join(value[0])
-			min_posit = ', '.join([str(p) for p in value[1]])
-			max_posit = ', '.join([str(p) for p in value[2]])
-			q_spec = ', '.join(value[3])
-
-			file.write("{:<{}} {:<{}} {:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], scaffold_id, column_widths[1], min_posit, column_widths[2], max_posit, column_widths[3], q_spec, column_widths[4]))      
+						auto_report[species][3].append(spec)   
+	
+	# rows to write to tsv file
+	auto_sum_rows = []
+	# headers for tsv file
+	auto_sum_headers = ["Species", "Scaffold ID", "Start Posit", "End Posit", "Query Species"]
+	
+	for key, value in auto_report.items():
+		species = key
+		scaffold_id = ', '.join(value[0])
+		min_posit = ', '.join([str(p) for p in value[1]])
+		max_posit = ', '.join([str(p) for p in value[2]])
+		q_spec = ', '.join(value[3])
+		
+		row = {"Species": species, 
+			   "Scaffold ID": scaffold_id, 
+			   "Start Posit": min_posit, 
+			   "End Posit": max_posit, 
+			   "Query Species": q_spec}
+		
+		auto_sum_rows.append(row)
+	
+	# write to tsv file
+	with open(auto_sum, 'w') as auto_sum_file:
+		writer = csv.DictWriter(auto_sum_file, delimiter='\t', fieldnames=auto_sum_headers)
+		writer.writeheader()
+		writer.writerows(auto_sum_rows)
+		
 	
 	# make a clustal object
 	clustal = Clustal(final_annotated_dict, final_prot_dict, prot_db)

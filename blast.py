@@ -2,6 +2,7 @@ import subprocess
 import os
 import sys
 import re
+import csv
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -473,63 +474,73 @@ def write_dict(blast_type, blast_dict, i):
 			
 # write summary for blastp and/or tblastn
 def write_summary(blast_type, blast_dict, special_case_list, all_specs_list, i):
-		
-	with open(blast_type + "_" + i + "_summary_report.txt", "w") as file:
-		column_widths = [50, 30, 100]
-		
-		# write hearder
-		file.write("{:<{}} {:<{}} {:<{}}\n".format("Species", column_widths[0], "Num Hit(s)", column_widths[1], "Hit ID(s)", column_widths[2]))
-		
-		# keep track of species that has been seen
-		added_spec = {}
-		
-		# add all species adn their seq id in blast result into dict, add how mnay hits per id
-		for key, value in blast_dict.items():
-			spec_name = value[0][0]
-			if spec_name not in added_spec.keys():
-				added_spec[spec_name] = [(key, len(value))]
-			else:
-				added_spec[spec_name].append((key, len(value)))
-		
-		# check of species has either been found in protein blast round or does not have protein dataset
-		for spec in all_specs_list:
+    
+    # keep track of species that has been seen
+    added_spec = {}
+    
+    # add all species adn their seq id in blast result into dict, add how mnay hits per id
+    for key, value in blast_dict.items():
+        spec_name = value[0][0]
+        if spec_name not in added_spec.keys():
+            added_spec[spec_name] = [(key, len(value))]
+        else:
+            added_spec[spec_name].append((key, len(value)))
 
-			if blast_type == "blastp" or blast_type == "blastx":
-				if spec not in added_spec.keys() and spec not in special_case_list:
-					added_spec[spec] = 0
-				elif spec not in added_spec.keys():
-					added_spec[spec] = []
-			elif blast_type == "tblastn" or blast_type == "tblastx":
-				if len(special_case_list) > 0 and any(spec == info[0][0] for info in special_case_list) and spec not in added_spec.keys():
-					added_spec[spec] = 0
-				elif spec not in added_spec.keys():
-					added_spec[spec] = []
+    # check of species has either been found in protein blast round or does not have protein dataset
+    for spec in all_specs_list:
+        if blast_type == "blastp" or blast_type == "blastx":
+            if spec not in added_spec.keys() and spec not in special_case_list:
+                added_spec[spec] = 0
+            elif spec not in added_spec.keys():
+                added_spec[spec] = []
+        elif blast_type == "tblastn" or blast_type == "tblastx":
+            if len(special_case_list) > 0 and any(spec == info[0][0] for info in special_case_list) and spec not in added_spec.keys():
+                added_spec[spec] = 0
+            elif spec not in added_spec.keys():
+                added_spec[spec] = []
+        
+    # rows to write to tsv file
+    rows = []
+    # headers for tsv file
+    headers = ["Species", "Num Hit(s)", "Hit ID(s)"]
+    
+    # fill in info to write to file
+    for key, value in added_spec.items():
+        species = key
+        count = None
 
-		# fill in info to write to file
-		for key, value in added_spec.items():
-			species = key
-			count = None
-			
-			if blast_type == "blastp" or blast_type == "blastx":
-				count = "no protein dataset"
-			elif blast_type == "tblastn" or blast_type == "tblastx":
-				count = "blastp"
-				
-			hit_ids = "N/A"
-			
-			if value != 0:
-				count = str(len(value))
-				if len(value) != 0:
-					hit_ids = ', '.join(f'{seq_id} ({num_hit})' for seq_id, num_hit in value)
+        if blast_type == "blastp" or blast_type == "blastx":
+            count = "no protein dataset"
+        elif blast_type == "tblastn" or blast_type == "tblastx":
+            count = "blastp"
 
-			file.write("{:<{}} {:<{}} {:<{}}\n".format(species, column_widths[0], count, column_widths[1], hit_ids, column_widths[2]))
+        hit_ids = "N/A"
+
+        if value != 0:
+            count = str(len(value))
+            if len(value) != 0:
+                hit_ids = ', '.join(f'{seq_id} ({num_hit})' for seq_id, num_hit in value)
+                
+        row = {"Species": species, 
+               "Num Hit(s)": count,
+               "Hit ID(s)": hit_ids}
+        
+        rows.append(row)
+        
+    # write to tsv file
+    with open(blast_type + "_" + i + "_summary_report.tsv", "w") as file:
+        writer = csv.DictWriter(file, delimiter='\t', fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(rows)
 	
+    
 # write list to txt file
 def write_list(filename, l):
 	with open(filename + ".txt", "w") as file:
 		for line in l:
 			file.write(line + "\n")
 
+            
 # read txt file and return a list of lines from file
 def read_list(filename):
 	l = []
@@ -537,6 +548,7 @@ def read_list(filename):
 		for line in file:
 			l.append(line.strip("\n"))
 	return l
+
 
 # read txt and return a dict
 def txt_to_dict(filename):
