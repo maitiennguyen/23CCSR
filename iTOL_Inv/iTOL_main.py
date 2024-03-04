@@ -35,9 +35,9 @@ Kazachstania rosinii
 Kazachstania africana
 Kazachstania viticola
 Naumovozyma dairenensis
-Naumovozyma castellii
+Naumovozyma castelli
 Tetrapisispora namnaonensis
-Tetrapisispora fleetii
+Tetrapisispora fleeti
 Tetrapisispora phaffii
 Tetrapisispora iriomotensis
 Vanderwaltozyma polyspora
@@ -283,7 +283,7 @@ Komagataella pseudopastoris
 Komagataella mondaviorum
 Komagataella pastoris
 Komagataella ulmi
-Komagataella phaffii
+Komagataella phaffi
 Komagataella kurtzmanii
 Peterozyma xylosa
 Peterozyma toletana
@@ -412,6 +412,12 @@ with open(clustal_file, 'r') as file:
                     spec = 'Wickerhamomyces ciferri'
                 elif spec == "Wickerhamomyces sp. nrrl yb-2243":
                     spec = "Wickerhamomyces sp."
+                elif spec == 'Komagataella phaffii':
+                    spec = 'Komagataella phaffi'
+                elif spec == "Naumovozyma castellii":
+                    spec = 'Naumovozyma castelli'
+                elif spec == 'Tetrapisispora fleetii':
+                    spec = 'Tetrapisispora fleeti'
                     
                 if "sp." not in spec.lower() or "wickerhamomyces sp." == spec.lower():
                     rslt_specs.append(spec)
