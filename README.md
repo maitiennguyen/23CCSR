@@ -12,6 +12,7 @@ By providing an amino acid or nucleotide query sequence along with a search set,
 - [Usage](#usage)
 - [Examples](#examples)
 - [File Documentation](#filedoc)
+- [Re-using Search Set](#rerun)
 - [Troubleshooting](#troubleshoot)
 
 
@@ -118,7 +119,7 @@ Specifies the taxon ID(s) of the search set. The ID(s) can be of any taxonomic r
 ```
 -download <yes_or_no>
 ```
-Specifies whether the search set data has already been downloaded with the script previously. Use 'yes' if the necessary files are in the working directory (see File Documentation for the specifics of the files), or 'no' if the script needs to download the search set data.
+Specifies whether the search set data has already been downloaded with the script previously. Use 'yes' if the necessary files are in the working directory (see [Re-using Search Set](#rerun) for the specifics of the files), or 'no' if the script needs to download the search set data.
 
 ### Optional Arguments
 ```
@@ -236,9 +237,10 @@ After running the tool, the following output folders and files will be generated
 - Miscellaneous folders and files:
     - `QuerySeqs`: A folder containing query sequences in fasta format.
 
-### Required Files for Re-using Search Set
 
-If you want to re-run the script and the search set remains the same as the previous run (when the argument for -download is 'no'), then the following files, which can be found in the `SearchSetFiles` folder, are required to be in the working directory for the script to run,:
+## Re-using Search Set
+<a name="rerun"></a>
+If you want to re-run the script and the search set remains the same as the previous run (when the argument for -download is 'no'), then the following files, which can be found in the `SearchSetFiles` folder, are **required to be moved into the working directory** for the script to run:
 
 - `nucl.fna`
 - `prot.faa`
